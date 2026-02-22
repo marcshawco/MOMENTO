@@ -1,8 +1,16 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppConstants.UserDefaultsKeys.isFaceIDEnabled) private var isFaceIDEnabled = false
+    @Query private var items: [CollectionItem]
+
+    @State private var isExporting = false
+    @State private var exportMessage = ""
+    @State private var shareURL: URL?
+    @State private var showingShareSheet = false
+    @State private var exportError: String?
 
     var body: some View {
         NavigationStack {
@@ -11,20 +19,27 @@ struct SettingsView: View {
                     Toggle(isOn: $isFaceIDEnabled) {
                         Label("Require Face ID", systemImage: "faceid")
                     }
-                    // M4: AuthenticationService will enforce this on foreground entry.
                 }
 
                 Section("Data") {
                     Button {
-                        // M4: Export functionality
+                        exportPDF()
                     } label: {
                         Label("Export Insurance Report", systemImage: "doc.text")
                     }
+                    .disabled(items.isEmpty || isExporting)
 
                     Button {
-                        // M4: Export ZIP
+                        exportCSV()
                     } label: {
-                        Label("Export All Data", systemImage: "square.and.arrow.up")
+                        Label("Export as CSV", systemImage: "tablecells")
+                    }
+                    .disabled(items.isEmpty || isExporting)
+
+                    if items.isEmpty {
+                        Text("Add items to enable export")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -34,6 +49,10 @@ struct SettingsView: View {
                         Text(diskSpace >= 1024
                              ? String(format: "%.1f GB", Double(diskSpace) / 1024.0)
                              : "\(diskSpace) MB")
+                    }
+
+                    LabeledContent("Items") {
+                        Text("\(items.count)")
                     }
                 }
 
@@ -49,8 +68,63 @@ struct SettingsView: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .overlay {
+                if isExporting {
+                    ExportProgressView(message: exportMessage)
+                }
+            }
+            .sheet(isPresented: $showingShareSheet) {
+                if let shareURL {
+                    ShareSheetView(activityItems: [shareURL])
+                }
+            }
+            .alert("Export Error", isPresented: .constant(exportError != nil)) {
+                Button("OK") { exportError = nil }
+            } message: {
+                if let exportError {
+                    Text(exportError)
+                }
+            }
         }
     }
+
+    // MARK: - Export Actions
+
+    private func exportPDF() {
+        isExporting = true
+        exportMessage = "Generating PDF report..."
+
+        Task {
+            do {
+                let url = try ExportService.shared.generatePDFReport(items: Array(items))
+                shareURL = url
+                isExporting = false
+                showingShareSheet = true
+            } catch {
+                isExporting = false
+                exportError = error.localizedDescription
+            }
+        }
+    }
+
+    private func exportCSV() {
+        isExporting = true
+        exportMessage = "Generating CSV catalog..."
+
+        Task {
+            do {
+                let url = try ExportService.shared.generateCSV(items: Array(items))
+                shareURL = url
+                isExporting = false
+                showingShareSheet = true
+            } catch {
+                isExporting = false
+                exportError = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - Helpers
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -63,4 +137,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
+        .modelContainer(SampleData.previewContainer)
 }

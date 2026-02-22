@@ -68,6 +68,26 @@ struct ItemDetailView: View {
         }
         .navigationTitle(viewModel.title.isEmpty ? "Untitled" : viewModel.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.exportAsPDF()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(viewModel.isExporting)
+            }
+        }
+        .overlay {
+            if viewModel.isExporting {
+                ExportProgressView(message: "Generating PDF...")
+            }
+        }
+        .sheet(isPresented: $viewModel.showingShareSheet) {
+            if let url = viewModel.exportedFileURL {
+                ShareSheetView(activityItems: [url])
+            }
+        }
         .onAppear {
             viewModel.configure(item: item, modelContext: modelContext)
         }
