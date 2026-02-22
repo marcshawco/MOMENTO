@@ -55,6 +55,35 @@ enum SampleData {
         )
     }
 
+    /// Sample item pre-configured with attachments for detail view previews.
+    static var sampleItemWithAttachments: CollectionItem {
+        let item = CollectionItem(
+            title: "Vintage Leica M3",
+            itemDescription: "1957 Leica M3 double-stroke rangefinder camera in excellent condition. Original leather case included.",
+            tags: ["camera", "vintage", "leica", "german"],
+            collectionName: "Cameras",
+            purchaseDate: Calendar.current.date(from: DateComponents(year: 2023, month: 6, day: 15)),
+            purchasePrice: 1800,
+            estimatedValue: 2400,
+            serialNumber: "M3-854921",
+            provenanceNotes: "Purchased from estate sale in Portland, OR. Previous owner was a photojournalist."
+        )
+
+        // Simulate attachments (file names won't resolve to real files in previews, but models are populated)
+        let photo1 = PhotoAttachment(fileName: "Photos/leica-front.jpg", caption: "Front view", item: item)
+        let photo2 = PhotoAttachment(fileName: "Photos/leica-back.jpg", caption: "Rear view", item: item)
+        item.photoAttachments = [photo1, photo2]
+
+        let memo = VoiceMemo(fileName: "VoiceMemos/leica-notes.m4a", duration: 42, item: item)
+        item.voiceMemos = [memo]
+
+        let note1 = TextMemory(body: "Shutter speeds all accurate. Light meter needs CLA.", item: item)
+        let note2 = TextMemory(body: "Comparable units selling for $2,200–$2,600 on eBay.", item: item)
+        item.textMemories = [note1, note2]
+
+        return item
+    }
+
     // MARK: - Batch Samples
 
     static var sampleItems: [CollectionItem] {

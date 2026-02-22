@@ -49,7 +49,7 @@ struct ShelfView: View {
                 CaptureContainerView()
             }
             .navigationDestination(for: CollectionItem.ID.self) { itemId in
-                ItemDetailPlaceholderView(itemId: itemId)
+                ItemDetailView(itemId: itemId)
             }
         }
     }
@@ -177,119 +177,6 @@ enum SortOrder: String, CaseIterable, Identifiable {
         case .valueHighLow: "Value: High to Low"
         case .valueLowHigh: "Value: Low to High"
         }
-    }
-}
-
-// MARK: - Placeholder Views (replaced in M3)
-
-/// Temporary detail view. Replaced by full ItemDetailView in M3.
-struct ItemDetailPlaceholderView: View {
-    let itemId: UUID
-
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [CollectionItem]
-
-    private var item: CollectionItem? {
-        items.first { $0.id == itemId }
-    }
-
-    var body: some View {
-        if let item {
-            List {
-                Section("Info") {
-                    LabeledContent("Title", value: item.title)
-                    LabeledContent("Collection", value: item.collectionName)
-                    if let value = item.formattedEstimatedValue {
-                        LabeledContent("Estimated Value", value: value)
-                    }
-                }
-
-                Section("Description") {
-                    Text(item.itemDescription.isEmpty ? "No description" : item.itemDescription)
-                        .foregroundStyle(item.itemDescription.isEmpty ? .secondary : .primary)
-                }
-
-                Section("Tags") {
-                    if item.tags.isEmpty {
-                        Text("No tags")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        FlowLayout(spacing: 8) {
-                            ForEach(item.tags, id: \.self) { tag in
-                                Text(tag)
-                                    .font(.caption)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(.tint.opacity(0.15), in: Capsule())
-                            }
-                        }
-                    }
-                }
-
-                Section("3D Model") {
-                    Label(
-                        item.modelFileName ?? "No model yet",
-                        systemImage: item.modelFileName != nil ? "cube.fill" : "cube"
-                    )
-                    .foregroundStyle(item.modelFileName != nil ? .primary : .secondary)
-                }
-
-                Section("Metadata") {
-                    LabeledContent("Created", value: item.createdAt.formatted(date: .abbreviated, time: .shortened))
-                    LabeledContent("Updated", value: item.updatedAt.formatted(date: .abbreviated, time: .shortened))
-                    LabeledContent("Photos", value: "\(item.photoAttachments.count)")
-                    LabeledContent("Voice Memos", value: "\(item.voiceMemos.count)")
-                    LabeledContent("Notes", value: "\(item.textMemories.count)")
-                }
-            }
-            .navigationTitle(item.title)
-            .navigationBarTitleDisplayMode(.inline)
-        } else {
-            ContentUnavailableView("Item Not Found", systemImage: "exclamationmark.triangle")
-        }
-    }
-}
-
-/// Simple horizontal flow layout for tags.
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        for (index, subview) in subviews.enumerated() {
-            guard index < result.positions.count else { break }
-            let position = result.positions[index]
-            subview.place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
-        }
-    }
-
-    private func arrange(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var lineHeight: CGFloat = 0
-        var maxX: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if currentX + size.width > maxWidth, currentX > 0 {
-                currentX = 0
-                currentY += lineHeight + spacing
-                lineHeight = 0
-            }
-            positions.append(CGPoint(x: currentX, y: currentY))
-            lineHeight = max(lineHeight, size.height)
-            currentX += size.width + spacing
-            maxX = max(maxX, currentX - spacing)
-        }
-
-        return (CGSize(width: maxX, height: currentY + lineHeight), positions)
     }
 }
 
