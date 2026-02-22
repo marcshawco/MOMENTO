@@ -210,4 +210,34 @@ final class ItemDetailViewModel {
         guard let fileName = item?.thumbnailFileName else { return nil }
         return try? FileStorageService.shared.resolveURL(for: fileName)
     }
+
+    // MARK: - Export
+
+    /// Whether an export is currently in progress.
+    var isExporting = false
+
+    /// URL of the last exported file, used to present the share sheet.
+    var exportedFileURL: URL?
+
+    /// Whether to show the share sheet.
+    var showingShareSheet = false
+
+    /// Generates a single-item PDF and presents the share sheet.
+    func exportAsPDF() {
+        guard let item else { return }
+        saveIfNeeded()
+        isExporting = true
+
+        Task {
+            do {
+                let url = try ExportService.shared.generateSingleItemPDF(item: item)
+                exportedFileURL = url
+                isExporting = false
+                showingShareSheet = true
+            } catch {
+                isExporting = false
+                logger.error("Export PDF failed: \(error.localizedDescription)")
+            }
+        }
+    }
 }

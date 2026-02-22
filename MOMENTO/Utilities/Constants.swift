@@ -40,6 +40,21 @@ enum AppConstants {
         static let modelPreviewHeight: CGFloat = 300
     }
 
+    // MARK: - Export
+    enum Export {
+        static let pageWidth: CGFloat = 612   // US Letter
+        static let pageHeight: CGFloat = 792
+        static let margin: CGFloat = 50
+        static let thumbnailMaxSize: CGFloat = 200
+        static let titleFontSize: CGFloat = 24
+        static let headingFontSize: CGFloat = 16
+        static let bodyFontSize: CGFloat = 12
+        static let captionFontSize: CGFloat = 10
+        static let lineSpacing: CGFloat = 6
+        static let sectionSpacing: CGFloat = 20
+        static let exportTempFolder = "Exports"
+    }
+
     // MARK: - UserDefaults Keys
     enum UserDefaultsKeys {
         static let hasSeenOnboarding = "hasSeenOnboarding"
