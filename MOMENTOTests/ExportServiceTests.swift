@@ -1,4 +1,6 @@
 import Foundation
+import ImageIO
+import UIKit
 import XCTest
 @testable import MOMENTO
 
@@ -38,7 +40,7 @@ final class ExportServiceTests: XCTestCase {
             fileName: "\(id.uuidString).usdz"
         )
         let photoPath = try FileStorageService.shared.saveFile(
-            data: Data("photo-data".utf8),
+            data: try makeJPEGWithGPSMetadata(),
             directory: AppConstants.Storage.photosFolder,
             fileName: "\(id.uuidString).jpg"
         )
@@ -89,5 +91,82 @@ final class ExportServiceTests: XCTestCase {
         XCTAssertEqual(urls.count, 2)
         XCTAssertEqual(urls.first?.pathExtension, "json")
         XCTAssertEqual(urls.last?.lastPathComponent, "\(id.uuidString).usdz")
+    }
+
+    func testDataArchiveExportsSanitizedPhotoCopy() throws {
+        FileStorageService.shared.createDirectoryStructure()
+        let id = UUID()
+        let photoPath = try FileStorageService.shared.saveFile(
+            data: try makeJPEGWithGPSMetadata(),
+            directory: AppConstants.Storage.photosFolder,
+            fileName: "\(id.uuidString).jpg"
+        )
+        defer {
+            FileStorageService.shared.deleteFile(fileName: photoPath)
+        }
+
+        let item = CollectionItem(id: id, title: "Legacy Photo Item")
+        item.photoAttachments.append(PhotoAttachment(fileName: photoPath, item: item))
+
+        let urls = try ExportService.shared.generateDataArchive(items: [item])
+        let exportedPhotoURL = try XCTUnwrap(urls.first { $0.lastPathComponent.hasPrefix("sanitized-") })
+        let storedURL = try FileStorageService.shared.resolveURL(for: photoPath)
+
+        XCTAssertNotEqual(exportedPhotoURL, storedURL)
+        XCTAssertNil(try gpsMetadata(in: exportedPhotoURL))
+    }
+
+    private func gpsMetadata(in url: URL) throws -> Any? {
+        let data = try Data(contentsOf: url)
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {
+            return nil
+        }
+        return properties[kCGImagePropertyGPSDictionary]
+    }
+
+    private func makeJPEGWithGPSMetadata() throws -> Data {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { context in
+            UIColor.systemBlue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
+        }
+
+        guard let cgImage = image.cgImage else {
+            throw TestImageError.missingCGImage
+        }
+
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data,
+            "public.jpeg" as CFString,
+            1,
+            nil
+        ) else {
+            throw TestImageError.missingDestination
+        }
+
+        let gpsMetadata: [CFString: Any] = [
+            kCGImagePropertyGPSLatitude: 37.3317,
+            kCGImagePropertyGPSLatitudeRef: "N",
+            kCGImagePropertyGPSLongitude: 122.0307,
+            kCGImagePropertyGPSLongitudeRef: "W",
+        ]
+        let properties: [CFString: Any] = [
+            kCGImagePropertyGPSDictionary: gpsMetadata,
+            kCGImagePropertyOrientation: 1,
+        ]
+
+        CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else {
+            throw TestImageError.finalizeFailed
+        }
+
+        return data as Data
+    }
+
+    private enum TestImageError: Error {
+        case missingCGImage
+        case missingDestination
+        case finalizeFailed
     }
 }

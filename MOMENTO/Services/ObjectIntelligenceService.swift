@@ -191,6 +191,11 @@ final class ObjectIntelligenceService {
             return nil
         }
 
+        guard Self.isAllowedCloudSuggestionEndpoint(endpointURL) else {
+            logger.warning("Cloud suggestion endpoint rejected because it is not HTTPS")
+            return nil
+        }
+
         guard let downsampledData = downsampleJPEG(from: imageData, maxDimension: 640) else { return nil }
 
         do {
@@ -249,5 +254,13 @@ final class ObjectIntelligenceService {
         guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
         let uiImage = UIImage(cgImage: image)
         return uiImage.jpegData(compressionQuality: 0.8)
+    }
+
+    nonisolated static func isAllowedCloudSuggestionEndpoint(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https" else {
+            return false
+        }
+
+        return url.host?.isEmpty == false
     }
 }

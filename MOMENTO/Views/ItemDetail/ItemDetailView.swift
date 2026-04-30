@@ -112,8 +112,9 @@ struct ItemDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                viewModel.deleteItem()
-                dismiss()
+                if viewModel.deleteItem() {
+                    dismiss()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {

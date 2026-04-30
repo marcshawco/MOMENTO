@@ -10,7 +10,9 @@ struct OnboardingView: View {
 
     @State private var currentPage = 0
     @State private var permissionService = PermissionService()
+    @State private var authService = AuthenticationService()
     @State private var isRequestingPermissions = false
+    @State private var securityMessage: String?
 
     private let pageCount = 4
 
@@ -54,6 +56,13 @@ struct OnboardingView: View {
         .onAppear {
             permissionService.refreshStatuses()
         }
+        .alert("Security", isPresented: .constant(securityMessage != nil)) {
+            Button("OK") { securityMessage = nil }
+        } message: {
+            if let securityMessage {
+                Text(securityMessage)
+            }
+        }
     }
 
     // MARK: - Security Page
@@ -79,7 +88,7 @@ struct OnboardingView: View {
                     .padding(.horizontal, 32)
             }
 
-            Toggle(isOn: $isFaceIDEnabled) {
+            Toggle(isOn: faceIDBinding) {
                 Label("Enable Face ID", systemImage: "faceid")
                     .font(.headline)
             }
@@ -219,6 +228,31 @@ struct OnboardingView: View {
     }
 
     // MARK: - Actions
+
+    private var faceIDBinding: Binding<Bool> {
+        Binding(
+            get: { isFaceIDEnabled },
+            set: { newValue in
+                handleFaceIDToggle(newValue)
+            }
+        )
+    }
+
+    private func handleFaceIDToggle(_ newValue: Bool) {
+        guard newValue else {
+            isFaceIDEnabled = false
+            return
+        }
+
+        Task {
+            if await authService.verifyBiometricBeforeEnabling() {
+                isFaceIDEnabled = true
+            } else {
+                isFaceIDEnabled = false
+                securityMessage = authService.authError ?? "Momento could not verify your identity."
+            }
+        }
+    }
 
     private func completeOnboarding() {
         hasSeenOnboarding = true

@@ -205,12 +205,22 @@ final class ItemDetailViewModel {
 
     // MARK: - Item Deletion
 
-    func deleteItem() {
-        guard let item, let modelContext else { return }
-        FileStorageService.shared.deleteFiles(for: item)
+    @discardableResult
+    func deleteItem() -> Bool {
+        guard let item, let modelContext else { return false }
+        let fileNames = FileStorageService.shared.fileNames(for: item)
         modelContext.delete(item)
-        saveContextOrLog(operation: "delete item")
+
+        do {
+            try modelContext.save()
+        } catch {
+            logger.error("SwiftData save failed during delete item: \(error.localizedDescription)")
+            return false
+        }
+
+        fileNames.forEach { FileStorageService.shared.deleteFile(fileName: $0) }
         logger.info("Item deleted: \(item.id)")
+        return true
     }
 
     // MARK: - File URLs

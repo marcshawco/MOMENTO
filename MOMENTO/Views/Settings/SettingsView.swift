@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var exportError: String?
     @State private var cleanupMessage: String?
     @State private var securityMessage: String?
+    @State private var showingCloudConsent = false
 
     var body: some View {
         NavigationStack {
@@ -32,7 +33,7 @@ struct SettingsView: View {
                         Label("On-Device Object Suggestions", systemImage: "cpu")
                     }
 
-                    Toggle(isOn: $enableCloudSuggestions) {
+                    Toggle(isOn: cloudSuggestionsBinding) {
                         Label("Cloud Suggestions (Optional)", systemImage: "icloud")
                     }
 
@@ -151,6 +152,16 @@ struct SettingsView: View {
                     Text(securityMessage)
                 }
             }
+            .alert("Enable Cloud Suggestions?", isPresented: $showingCloudConsent) {
+                Button("Cancel", role: .cancel) {
+                    enableCloudSuggestions = false
+                }
+                Button("Enable") {
+                    enableCloudSuggestions = true
+                }
+            } message: {
+                Text("Momento will send one downsampled image from a scan to your configured HTTPS endpoint when on-device suggestions are unavailable or low-confidence.")
+            }
         }
     }
 
@@ -231,21 +242,27 @@ struct SettingsView: View {
         )
     }
 
+    private var cloudSuggestionsBinding: Binding<Bool> {
+        Binding(
+            get: { enableCloudSuggestions },
+            set: { newValue in
+                if newValue {
+                    showingCloudConsent = true
+                } else {
+                    enableCloudSuggestions = false
+                }
+            }
+        )
+    }
+
     private func handleFaceIDToggle(_ newValue: Bool) {
         guard newValue else {
             isFaceIDEnabled = false
             return
         }
 
-        guard authService.isBiometricAvailable else {
-            isFaceIDEnabled = false
-            securityMessage = "Face ID is not available on this device or has not been configured."
-            return
-        }
-
         Task {
-            await authService.authenticate()
-            if authService.isUnlocked {
+            if await authService.verifyBiometricBeforeEnabling() {
                 isFaceIDEnabled = true
             } else {
                 isFaceIDEnabled = false

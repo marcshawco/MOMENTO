@@ -34,6 +34,7 @@ nonisolated struct MomentoArchiveItem: Codable, Equatable {
 nonisolated struct MomentoArchiveAsset: Codable, Equatable {
     let kind: String
     let relativePath: String
+    let exportedFileName: String
     let byteCount: Int64?
     let sha256: String?
 }
@@ -160,7 +161,7 @@ nonisolated final class ExportService: Sendable {
         let manifestURL = try exportFileURL(name: "Momento_Data_Archive", extension: "json")
         try data.write(to: manifestURL, options: .atomic)
 
-        let assetURLs = archiveAssetURLs(from: manifest)
+        let assetURLs = try archiveAssetURLs(from: manifest)
         logger.info("Data archive manifest generated: \(items.count) items, \(assetURLs.count) assets")
         return [manifestURL] + assetURLs
     }
@@ -477,16 +478,25 @@ nonisolated final class ExportService: Sendable {
         return value
     }
 
-    private func archiveAssetURLs(from manifest: MomentoDataArchive) -> [URL] {
+    private func archiveAssetURLs(from manifest: MomentoDataArchive) throws -> [URL] {
         var seen = Set<String>()
         var urls: [URL] = []
 
         for item in manifest.items {
             for asset in item.assets where seen.insert(asset.relativePath).inserted {
-                guard let url = try? FileStorageService.shared.resolveURL(for: asset.relativePath),
-                      FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+                if asset.kind == "photo" {
+                    guard let url = try sanitizedPhotoExportURL(
+                        for: asset.relativePath,
+                        exportedFileName: asset.exportedFileName
+                    ) else {
+                        continue
+                    }
+                    urls.append(url)
                     continue
                 }
+
+                let url = try FileStorageService.shared.resolveURL(for: asset.relativePath)
+                guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { continue }
                 urls.append(url)
             }
         }
@@ -511,24 +521,61 @@ nonisolated final class ExportService: Sendable {
         }
 
         return assets.map { kind, path in
-            let details = fileDetails(relativePath: path)
+            let details = fileDetails(relativePath: path, sanitizePhoto: kind == "photo")
             return MomentoArchiveAsset(
                 kind: kind,
                 relativePath: path,
+                exportedFileName: exportFileName(for: path, kind: kind),
                 byteCount: details.byteCount,
                 sha256: details.sha256
             )
         }
     }
 
-    private func fileDetails(relativePath: String) -> (byteCount: Int64?, sha256: String?) {
-        guard let url = try? FileStorageService.shared.resolveURL(for: relativePath),
-              let data = try? Data(contentsOf: url) else {
+    private func exportFileName(for relativePath: String, kind: String) -> String {
+        let lastPathComponent = URL(fileURLWithPath: relativePath).lastPathComponent
+        guard kind == "photo" else { return lastPathComponent }
+        return "sanitized-\(lastPathComponent)"
+    }
+
+    private func sanitizedPhotoExportURL(for relativePath: String, exportedFileName: String) throws -> URL? {
+        guard let data = assetData(relativePath: relativePath, sanitizePhoto: true) else {
+            return nil
+        }
+
+        let directory = try sanitizedPhotoExportDirectory()
+        let destinationURL = directory.appendingPathComponent(exportedFileName)
+        try data.write(to: destinationURL, options: .atomic)
+        return destinationURL
+    }
+
+    private func sanitizedPhotoExportDirectory() throws -> URL {
+        let directory = try exportTempDirectory()
+            .appendingPathComponent("SanitizedPhotos", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
+
+    private func fileDetails(relativePath: String, sanitizePhoto: Bool) -> (byteCount: Int64?, sha256: String?) {
+        guard let data = assetData(relativePath: relativePath, sanitizePhoto: sanitizePhoto) else {
             return (nil, nil)
         }
 
         let digest = SHA256.hash(data: data)
         let hash = digest.map { String(format: "%02x", $0) }.joined()
         return (Int64(data.count), hash)
+    }
+
+    private func assetData(relativePath: String, sanitizePhoto: Bool) -> Data? {
+        guard let url = try? FileStorageService.shared.resolveURL(for: relativePath),
+              let data = try? Data(contentsOf: url) else {
+            return nil
+        }
+
+        if sanitizePhoto {
+            return try? PhotoImportService.shared.sanitizedImageData(from: data)
+        }
+
+        return data
     }
 }

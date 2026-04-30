@@ -260,10 +260,11 @@ struct ShelfView: View {
     }
 
     private func deleteItem(_ item: CollectionItem) {
-        FileStorageService.shared.deleteFiles(for: item)
+        let fileNames = FileStorageService.shared.fileNames(for: item)
         modelContext.delete(item)
         do {
             try modelContext.save()
+            fileNames.forEach { FileStorageService.shared.deleteFile(fileName: $0) }
         } catch {
             logger.error("Failed to delete item from SwiftData: \(error.localizedDescription)")
         }

@@ -1,6 +1,16 @@
 import Foundation
 import os
 
+private extension String {
+    nonisolated func trimmingTrailingPathSeparators() -> String {
+        var result = self
+        while result.count > 1 && result.hasSuffix("/") {
+            result.removeLast()
+        }
+        return result
+    }
+}
+
 struct StorageCleanupSummary: Sendable, Equatable {
     let deletedFiles: Int
     let reclaimedBytes: Int64
@@ -20,6 +30,17 @@ nonisolated final class FileStorageService: Sendable {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Momento", category: "FileStorage")
 
     private init() {}
+
+    enum FileStorageError: Error, LocalizedError {
+        case invalidRelativePath(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidRelativePath:
+                "The stored file path is invalid."
+            }
+        }
+    }
 
     // MARK: - Base Directory
 
@@ -65,7 +86,21 @@ nonisolated final class FileStorageService: Sendable {
 
     /// Resolves a relative file name (e.g. "Models/abc.usdz") to a full URL.
     func resolveURL(for fileName: String) throws -> URL {
-        try rootDirectory.appendingPathComponent(fileName)
+        let root = try rootDirectory.standardizedFileURL
+        let pathComponents = try validatedRelativePathComponents(fileName)
+        let resolvedURL = pathComponents
+            .reduce(root) { partialURL, component in
+                partialURL.appendingPathComponent(component)
+            }
+            .standardizedFileURL
+        let rootPath = root.path(percentEncoded: false).trimmingTrailingPathSeparators()
+        let resolvedPath = resolvedURL.path(percentEncoded: false)
+
+        guard resolvedPath == rootPath || resolvedPath.hasPrefix(rootPath + "/") else {
+            throw FileStorageError.invalidRelativePath(fileName)
+        }
+
+        return resolvedURL
     }
 
     /// Checks if a file exists at the resolved path for a given relative name.
@@ -80,25 +115,27 @@ nonisolated final class FileStorageService: Sendable {
     @discardableResult
     func saveFile(data: Data, directory: String, fileName: String) throws -> String {
         let dir = try subdirectory(directory)
-        let fileURL = dir.appendingPathComponent(fileName)
+        let safeFileName = try validatedFileName(fileName)
+        let fileURL = dir.appendingPathComponent(safeFileName)
         try data.write(to: fileURL, options: .atomic)
-        logger.info("Saved file: \(directory)/\(fileName)")
-        return "\(directory)/\(fileName)"
+        logger.info("Saved file: \(directory)/\(safeFileName)")
+        return "\(directory)/\(safeFileName)"
     }
 
     /// Moves a file from a source URL into the managed storage. Returns the relative file name.
     @discardableResult
     func moveFile(from sourceURL: URL, directory: String, fileName: String) throws -> String {
         let dir = try subdirectory(directory)
-        let destinationURL = dir.appendingPathComponent(fileName)
+        let safeFileName = try validatedFileName(fileName)
+        let destinationURL = dir.appendingPathComponent(safeFileName)
 
         if FileManager.default.fileExists(atPath: destinationURL.path(percentEncoded: false)) {
             try FileManager.default.removeItem(at: destinationURL)
         }
 
         try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
-        logger.info("Moved file to: \(directory)/\(fileName)")
-        return "\(directory)/\(fileName)"
+        logger.info("Moved file to: \(directory)/\(safeFileName)")
+        return "\(directory)/\(safeFileName)"
     }
 
     /// Deletes a file by its relative file name.
@@ -114,18 +151,23 @@ nonisolated final class FileStorageService: Sendable {
 
     /// Deletes all files associated with a CollectionItem (model, thumbnail, attachments).
     func deleteFiles(for item: CollectionItem) {
+        fileNames(for: item).forEach { deleteFile(fileName: $0) }
+    }
+
+    /// Returns all managed file references associated with an item.
+    func fileNames(for item: CollectionItem) -> [String] {
+        var fileNames: [String] = []
+
         if let modelFileName = item.modelFileName {
-            deleteFile(fileName: modelFileName)
+            fileNames.append(modelFileName)
         }
         if let thumbnailFileName = item.thumbnailFileName {
-            deleteFile(fileName: thumbnailFileName)
+            fileNames.append(thumbnailFileName)
         }
-        for photo in item.photoAttachments {
-            deleteFile(fileName: photo.fileName)
-        }
-        for memo in item.voiceMemos {
-            deleteFile(fileName: memo.fileName)
-        }
+        item.photoAttachments.forEach { fileNames.append($0.fileName) }
+        item.voiceMemos.forEach { fileNames.append($0.fileName) }
+
+        return fileNames
     }
 
     /// Removes a temporary capture session directory.
@@ -232,6 +274,40 @@ nonisolated final class FileStorageService: Sendable {
         let dir = try rootDirectory.appendingPathComponent(name, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
+    }
+
+    private func validatedFileName(_ fileName: String) throws -> String {
+        guard !fileName.isEmpty,
+              fileName != ".",
+              fileName != "..",
+              !fileName.contains("/") else {
+            throw FileStorageError.invalidRelativePath(fileName)
+        }
+
+        return fileName
+    }
+
+    private func validatedRelativePathComponents(_ path: String) throws -> [String] {
+        guard !path.isEmpty,
+              !path.hasPrefix("/"),
+              !path.hasPrefix("~") else {
+            throw FileStorageError.invalidRelativePath(path)
+        }
+
+        let components = path.split(separator: "/", omittingEmptySubsequences: false)
+        guard !components.isEmpty else {
+            throw FileStorageError.invalidRelativePath(path)
+        }
+
+        for component in components {
+            guard !component.isEmpty,
+                  component != ".",
+                  component != ".." else {
+                throw FileStorageError.invalidRelativePath(path)
+            }
+        }
+
+        return components.map(String.init)
     }
 
     private func removeContents(of directory: URL) -> StorageCleanupSummary {

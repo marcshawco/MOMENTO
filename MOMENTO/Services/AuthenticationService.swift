@@ -26,6 +26,18 @@ final class AuthenticationService {
 
     // MARK: - Authentication
 
+    /// Verifies biometric auth before enabling the app lock setting.
+    func verifyBiometricBeforeEnabling() async -> Bool {
+        guard isBiometricAvailable else {
+            isUnlocked = false
+            authError = "Face ID is not available on this device or has not been configured."
+            return false
+        }
+
+        await authenticate()
+        return isUnlocked
+    }
+
     /// Triggers biometric authentication. Sets `isUnlocked` on success.
     func authenticate() async {
         let context = LAContext()
