@@ -88,7 +88,7 @@ struct ItemDetailView: View {
                 ShareSheetView(activityItems: [url])
             }
         }
-        .alert("Export Error", isPresented: .constant(viewModel.exportError != nil)) {
+        .alert("Export Error", isPresented: exportErrorAlertBinding) {
             Button("OK") { viewModel.exportError = nil }
         } message: {
             if let exportError = viewModel.exportError {
@@ -123,6 +123,17 @@ struct ItemDetailView: View {
     }
 
     // MARK: - Timestamps
+
+    private var exportErrorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.exportError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.exportError = nil
+                }
+            }
+        )
+    }
 
     private func timestampsSection(for item: CollectionItem) -> some View {
         VStack(alignment: .leading, spacing: 6) {

@@ -131,21 +131,21 @@ struct SettingsView: View {
                     ShareSheetView(activityItems: shareURLs)
                 }
             }
-            .alert("Export Error", isPresented: .constant(exportError != nil)) {
+            .alert("Export Error", isPresented: exportErrorAlertBinding) {
                 Button("OK") { exportError = nil }
             } message: {
                 if let exportError {
                     Text(exportError)
                 }
             }
-            .alert("Storage Cleanup", isPresented: .constant(cleanupMessage != nil)) {
+            .alert("Storage Cleanup", isPresented: cleanupAlertBinding) {
                 Button("OK") { cleanupMessage = nil }
             } message: {
                 if let cleanupMessage {
                     Text(cleanupMessage)
                 }
             }
-            .alert("Security", isPresented: .constant(securityMessage != nil)) {
+            .alert("Security", isPresented: securityAlertBinding) {
                 Button("OK") { securityMessage = nil }
             } message: {
                 if let securityMessage {
@@ -250,6 +250,39 @@ struct SettingsView: View {
                     showingCloudConsent = true
                 } else {
                     enableCloudSuggestions = false
+                }
+            }
+        )
+    }
+
+    private var exportErrorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { exportError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    exportError = nil
+                }
+            }
+        )
+    }
+
+    private var cleanupAlertBinding: Binding<Bool> {
+        Binding(
+            get: { cleanupMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    cleanupMessage = nil
+                }
+            }
+        )
+    }
+
+    private var securityAlertBinding: Binding<Bool> {
+        Binding(
+            get: { securityMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    securityMessage = nil
                 }
             }
         )

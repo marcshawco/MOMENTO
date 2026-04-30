@@ -56,7 +56,7 @@ struct OnboardingView: View {
         .onAppear {
             permissionService.refreshStatuses()
         }
-        .alert("Security", isPresented: .constant(securityMessage != nil)) {
+        .alert("Security", isPresented: securityAlertBinding) {
             Button("OK") { securityMessage = nil }
         } message: {
             if let securityMessage {
@@ -234,6 +234,17 @@ struct OnboardingView: View {
             get: { isFaceIDEnabled },
             set: { newValue in
                 handleFaceIDToggle(newValue)
+            }
+        )
+    }
+
+    private var securityAlertBinding: Binding<Bool> {
+        Binding(
+            get: { securityMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    securityMessage = nil
+                }
             }
         )
     }
