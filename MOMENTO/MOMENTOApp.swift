@@ -3,7 +3,7 @@ import SwiftData
 
 @main
 struct MOMENTOApp: App {
-    let modelContainer: ModelContainer
+    private let startupResult: StartupResult
 
     @State private var authService = AuthenticationService()
     @AppStorage(AppConstants.UserDefaultsKeys.hasSeenOnboarding) private var hasSeenOnboarding = false
@@ -22,10 +22,11 @@ struct MOMENTOApp: App {
         ])
 
         do {
-            modelContainer = try ModelContainer(for: schema)
-            normalizeTagsIfNeeded()
+            let modelContainer = try ModelContainer(for: schema)
+            startupResult = .ready(modelContainer)
+            Self.normalizeTagsIfNeeded(modelContainer: modelContainer, defaultsKey: tagsNormalizationDefaultsKey)
         } catch {
-            fatalError("Failed to initialize ModelContainer: \(error)")
+            startupResult = .failed("Momento could not open its private database. Restart the app, then check available device storage if this continues. Details: \(error.localizedDescription)")
         }
 
         // Ensure file storage directories exist on launch
@@ -34,28 +35,34 @@ struct MOMENTOApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ShelfView()
-                .overlay {
-                    if isFaceIDEnabled && !authService.isUnlocked {
-                        LockScreenView(authService: authService)
+            switch startupResult {
+            case .ready(let modelContainer):
+                ShelfView()
+                    .overlay {
+                        if isFaceIDEnabled && !authService.isUnlocked {
+                            LockScreenView(authService: authService)
+                        }
                     }
-                }
-                .fullScreenCover(isPresented: showOnboarding) {
-                    OnboardingView()
-                }
-                .onChange(of: scenePhase) {
-                    if scenePhase == .background && isFaceIDEnabled {
-                        authService.lock()
+                    .fullScreenCover(isPresented: showOnboarding) {
+                        OnboardingView()
                     }
-                }
-                .onAppear {
-                    // Auto-unlock if FaceID is not enabled
-                    if !isFaceIDEnabled {
-                        authService.isUnlocked = true
+                    .onChange(of: scenePhase) {
+                        if scenePhase == .background && isFaceIDEnabled {
+                            authService.lock()
+                        }
                     }
-                }
+                    .onAppear {
+                        // Auto-unlock if FaceID is not enabled
+                        if !isFaceIDEnabled {
+                            authService.isUnlocked = true
+                        }
+                    }
+                    .modelContainer(modelContainer)
+
+            case .failed(let message):
+                StartupFailureView(message: message)
+            }
         }
-        .modelContainer(modelContainer)
     }
 
     // MARK: - Helpers
@@ -72,9 +79,9 @@ struct MOMENTOApp: App {
         )
     }
 
-    private func normalizeTagsIfNeeded() {
+    private static func normalizeTagsIfNeeded(modelContainer: ModelContainer, defaultsKey: String) {
         let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: tagsNormalizationDefaultsKey) else { return }
+        guard !defaults.bool(forKey: defaultsKey) else { return }
 
         let context = ModelContext(modelContainer)
         let descriptor = FetchDescriptor<CollectionItem>()
@@ -84,7 +91,7 @@ struct MOMENTOApp: App {
             var hasChanges = false
 
             for item in items {
-                let normalized = normalizedTags(item.tags)
+                let normalized = Self.normalizedTags(item.tags)
                 if normalized != item.tags {
                     item.tags = normalized
                     item.touch()
@@ -96,13 +103,13 @@ struct MOMENTOApp: App {
                 try context.save()
             }
 
-            defaults.set(true, forKey: tagsNormalizationDefaultsKey)
+            defaults.set(true, forKey: defaultsKey)
         } catch {
             // Keep running if normalization fails; it can run again next launch.
         }
     }
 
-    private func normalizedTags(_ tags: [String]) -> [String] {
+    private static func normalizedTags(_ tags: [String]) -> [String] {
         var seen = Set<String>()
         var normalized: [String] = []
 
@@ -117,5 +124,28 @@ struct MOMENTOApp: App {
         }
 
         return normalized
+    }
+}
+
+private enum StartupResult {
+    case ready(ModelContainer)
+    case failed(String)
+}
+
+private struct StartupFailureView: View {
+    let message: String
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("Storage Unavailable", systemImage: "externaldrive.badge.exclamationmark")
+        } description: {
+            Text(message)
+        } actions: {
+            Button("Open Settings") {
+                guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                UIApplication.shared.open(url)
+            }
+        }
+        .padding()
     }
 }
