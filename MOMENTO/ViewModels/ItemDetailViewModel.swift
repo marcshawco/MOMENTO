@@ -143,11 +143,15 @@ final class ItemDetailViewModel {
         logger.info("Photo added to item \(item.id)")
     }
 
-    func deletePhoto(_ photo: PhotoAttachment) {
-        FileStorageService.shared.deleteFile(fileName: photo.fileName)
+    @discardableResult
+    func deletePhoto(_ photo: PhotoAttachment) -> Bool {
+        let fileName = photo.fileName
+        item?.photoAttachments.removeAll { $0.id == photo.id }
         modelContext?.delete(photo)
         item?.touch()
-        saveContextOrLog(operation: "delete photo")
+        guard saveContextOrLog(operation: "delete photo") else { return false }
+        FileStorageService.shared.deleteFile(fileName: fileName)
+        return true
     }
 
     func updatePhotoCaption(_ photo: PhotoAttachment, caption: String) {
@@ -172,11 +176,15 @@ final class ItemDetailViewModel {
         logger.info("Voice memo added: \(fileName)")
     }
 
-    func deleteVoiceMemo(_ memo: VoiceMemo) {
-        FileStorageService.shared.deleteFile(fileName: memo.fileName)
+    @discardableResult
+    func deleteVoiceMemo(_ memo: VoiceMemo) -> Bool {
+        let fileName = memo.fileName
+        item?.voiceMemos.removeAll { $0.id == memo.id }
         modelContext?.delete(memo)
         item?.touch()
-        saveContextOrLog(operation: "delete voice memo")
+        guard saveContextOrLog(operation: "delete voice memo") else { return false }
+        FileStorageService.shared.deleteFile(fileName: fileName)
+        return true
     }
 
     // MARK: - Notes
@@ -271,16 +279,19 @@ final class ItemDetailViewModel {
         }
     }
 
-    private func saveContextOrLog(operation: String) {
+    @discardableResult
+    private func saveContextOrLog(operation: String) -> Bool {
         guard let modelContext else {
             logger.error("ModelContext unavailable during \(operation)")
-            return
+            return false
         }
 
         do {
             try modelContext.save()
+            return true
         } catch {
             logger.error("SwiftData save failed during \(operation): \(error.localizedDescription)")
+            return false
         }
     }
 }
