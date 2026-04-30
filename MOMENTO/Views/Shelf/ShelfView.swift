@@ -1,15 +1,19 @@
 import SwiftUI
 import SwiftData
+import os
 
 struct ShelfView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CollectionItem.updatedAt, order: .reverse) private var items: [CollectionItem]
+    @AppStorage(AppConstants.UserDefaultsKeys.preferredSortOrder) private var preferredSortOrderRaw = SortOrder.recentFirst.rawValue
 
     @State private var searchText = ""
     @State private var showingSettings = false
     @State private var showingAddItem = false
     @State private var sortOrder: SortOrder = .recentFirst
     @State private var filterTag: String?
+    @State private var filterCollection: String?
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Momento", category: "Shelf")
 
     private let columns = [
         GridItem(.adaptive(minimum: AppConstants.Limits.gridItemMinWidth), spacing: AppConstants.Limits.gridSpacing)
@@ -27,6 +31,9 @@ struct ShelfView: View {
             .navigationTitle("Momento")
             .searchable(text: $searchText, prompt: "Search items")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    filterMenu
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     sortMenu
                 }
@@ -51,6 +58,14 @@ struct ShelfView: View {
             .navigationDestination(for: CollectionItem.ID.self) { itemId in
                 ItemDetailView(itemId: itemId)
             }
+            .onAppear {
+                if let stored = SortOrder(rawValue: preferredSortOrderRaw) {
+                    sortOrder = stored
+                }
+            }
+            .onChange(of: sortOrder) {
+                preferredSortOrderRaw = sortOrder.rawValue
+            }
         }
     }
 
@@ -58,37 +73,82 @@ struct ShelfView: View {
 
     private var shelfGrid: some View {
         ScrollView {
-            if let filterTag {
-                HStack {
-                    Text("Filtered: \(filterTag)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Button("Clear") {
-                        self.filterTag = nil
-                    }
-                    .font(.subheadline)
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-            }
+            activeFiltersView
 
-            LazyVGrid(columns: columns, spacing: AppConstants.Limits.gridSpacing) {
-                ForEach(filteredAndSortedItems) { item in
-                    NavigationLink(value: item.id) {
-                        ShelfItemCard(item: item)
+            if filteredAndSortedItems.isEmpty {
+                ContentUnavailableView {
+                    Label("No Matching Items", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("Try clearing filters or adjusting your search.")
+                } actions: {
+                    Button("Clear Filters") {
+                        clearFilters()
                     }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            deleteItem(item)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+                }
+                .padding(.top, 60)
+            } else {
+                LazyVGrid(columns: columns, spacing: AppConstants.Limits.gridSpacing) {
+                    ForEach(filteredAndSortedItems) { item in
+                        NavigationLink(value: item.id) {
+                            ShelfItemCard(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                deleteItem(item)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
                 }
+                .padding()
             }
-            .padding()
         }
+    }
+
+    @ViewBuilder
+    private var activeFiltersView: some View {
+        if filterTag != nil || filterCollection != nil {
+            HStack(spacing: 8) {
+                if let filterTag {
+                    filterPill(title: "Tag: \(filterTag)") {
+                        self.filterTag = nil
+                    }
+                }
+
+                if let filterCollection {
+                    filterPill(title: "Collection: \(filterCollection)") {
+                        self.filterCollection = nil
+                    }
+                }
+
+                Button("Clear All") {
+                    clearFilters()
+                }
+                .font(.caption.weight(.semibold))
+            }
+            .padding(.horizontal)
+            .padding(.top, 10)
+        }
+    }
+
+    private func filterPill(title: String, onClear: @escaping () -> Void) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+                .font(.caption)
+
+            Button {
+                onClear()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.quaternary, in: Capsule())
     }
 
     private var addButton: some View {
@@ -120,6 +180,47 @@ struct ShelfView: View {
         .accessibilityLabel("Sort items")
     }
 
+    private var filterMenu: some View {
+        Menu {
+            Section("Collections") {
+                Button("All Collections") {
+                    filterCollection = nil
+                }
+                ForEach(allCollectionNames, id: \.self) { collection in
+                    Button {
+                        filterCollection = collection
+                    } label: {
+                        if filterCollection == collection {
+                            Label(collection, systemImage: "checkmark")
+                        } else {
+                            Text(collection)
+                        }
+                    }
+                }
+            }
+
+            Section("Tags") {
+                Button("All Tags") {
+                    filterTag = nil
+                }
+                ForEach(allTags, id: \.self) { tag in
+                    Button {
+                        filterTag = tag
+                    } label: {
+                        if filterTag == tag {
+                            Label(tag, systemImage: "checkmark")
+                        } else {
+                            Text(tag)
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+        }
+        .accessibilityLabel("Filter items")
+    }
+
     // MARK: - Logic
 
     private var filteredAndSortedItems: [CollectionItem] {
@@ -137,6 +238,10 @@ struct ShelfView: View {
         // Tag filter
         if let filterTag {
             result = result.filter { $0.tags.contains(filterTag) }
+        }
+
+        if let filterCollection {
+            result = result.filter { $0.collectionName == filterCollection }
         }
 
         // Sort
@@ -157,6 +262,28 @@ struct ShelfView: View {
     private func deleteItem(_ item: CollectionItem) {
         FileStorageService.shared.deleteFiles(for: item)
         modelContext.delete(item)
+        do {
+            try modelContext.save()
+        } catch {
+            logger.error("Failed to delete item from SwiftData: \(error.localizedDescription)")
+        }
+    }
+
+    private func clearFilters() {
+        filterTag = nil
+        filterCollection = nil
+    }
+
+    private var allTags: [String] {
+        Array(Set(items.flatMap(\.tags)))
+            .filter { !$0.isEmpty }
+            .sorted()
+    }
+
+    private var allCollectionNames: [String] {
+        Array(Set(items.map(\.collectionName)))
+            .filter { !$0.isEmpty }
+            .sorted()
     }
 }
 

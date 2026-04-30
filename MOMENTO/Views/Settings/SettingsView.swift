@@ -4,6 +4,9 @@ import SwiftData
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(AppConstants.UserDefaultsKeys.isFaceIDEnabled) private var isFaceIDEnabled = false
+    @AppStorage(AppConstants.UserDefaultsKeys.enableOnDeviceSuggestions) private var enableOnDeviceSuggestions = true
+    @AppStorage(AppConstants.UserDefaultsKeys.enableCloudSuggestions) private var enableCloudSuggestions = false
+    @AppStorage(AppConstants.UserDefaultsKeys.cloudSuggestionEndpoint) private var cloudSuggestionEndpoint = ""
     @Query private var items: [CollectionItem]
 
     @State private var isExporting = false
@@ -19,6 +22,33 @@ struct SettingsView: View {
                     Toggle(isOn: $isFaceIDEnabled) {
                         Label("Require Face ID", systemImage: "faceid")
                     }
+                }
+
+                Section("AI Assist") {
+                    Toggle(isOn: $enableOnDeviceSuggestions) {
+                        Label("On-Device Object Suggestions", systemImage: "cpu")
+                    }
+
+                    Toggle(isOn: $enableCloudSuggestions) {
+                        Label("Cloud Suggestions (Optional)", systemImage: "icloud")
+                    }
+
+                    if enableCloudSuggestions {
+                        TextField(
+                            "Cloud endpoint URL",
+                            text: $cloudSuggestionEndpoint,
+                            prompt: Text("https://example.com/suggest")
+                        )
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                    }
+
+                    Text(enableCloudSuggestions
+                         ? "If enabled, Momento sends one downsampled image to your endpoint for metadata suggestions."
+                         : "All object suggestions stay on-device unless cloud suggestions are explicitly enabled.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Data") {

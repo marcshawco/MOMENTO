@@ -3,8 +3,7 @@ import SwiftData
 
 @Model
 final class PhotoAttachment {
-    #Unique<PhotoAttachment>([\.id])
-
+    @Attribute(.unique)
     var id: UUID
     var fileName: String
     var caption: String

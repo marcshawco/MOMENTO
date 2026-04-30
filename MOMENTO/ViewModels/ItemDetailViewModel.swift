@@ -24,6 +24,7 @@ enum AttachmentTab: String, CaseIterable, Identifiable {
 
 /// Central view model for the item detail screen.
 /// Buffers editable fields and auto-saves to SwiftData after a debounce period.
+@MainActor
 @Observable
 final class ItemDetailViewModel {
 
@@ -108,6 +109,7 @@ final class ItemDetailViewModel {
         item.serialNumber = serialNumber.isEmpty ? nil : serialNumber
         item.provenanceNotes = provenanceNotes.isEmpty ? nil : provenanceNotes
         item.touch()
+        saveContextOrLog(operation: "save metadata")
         logger.info("Auto-saved item: \(item.title)")
     }
 
@@ -137,6 +139,7 @@ final class ItemDetailViewModel {
         let attachment = PhotoAttachment(fileName: fileName, item: item)
         modelContext?.insert(attachment)
         item.touch()
+        saveContextOrLog(operation: "add photo")
         logger.info("Photo added to item \(item.id)")
     }
 
@@ -144,6 +147,7 @@ final class ItemDetailViewModel {
         FileStorageService.shared.deleteFile(fileName: photo.fileName)
         modelContext?.delete(photo)
         item?.touch()
+        saveContextOrLog(operation: "delete photo")
     }
 
     // MARK: - Voice Memos
@@ -158,6 +162,7 @@ final class ItemDetailViewModel {
         let memo = VoiceMemo(fileName: fileName, duration: duration, item: item)
         modelContext?.insert(memo)
         item.touch()
+        saveContextOrLog(operation: "add voice memo")
         logger.info("Voice memo added: \(fileName)")
     }
 
@@ -165,6 +170,7 @@ final class ItemDetailViewModel {
         FileStorageService.shared.deleteFile(fileName: memo.fileName)
         modelContext?.delete(memo)
         item?.touch()
+        saveContextOrLog(operation: "delete voice memo")
     }
 
     // MARK: - Notes
@@ -176,16 +182,19 @@ final class ItemDetailViewModel {
         let note = TextMemory(body: trimmed, item: item)
         modelContext?.insert(note)
         item.touch()
+        saveContextOrLog(operation: "add note")
     }
 
     func updateNote(_ note: TextMemory, body: String) {
         note.body = body.trimmingCharacters(in: .whitespacesAndNewlines)
         item?.touch()
+        saveContextOrLog(operation: "update note")
     }
 
     func deleteNote(_ note: TextMemory) {
         modelContext?.delete(note)
         item?.touch()
+        saveContextOrLog(operation: "delete note")
     }
 
     // MARK: - Item Deletion
@@ -194,6 +203,7 @@ final class ItemDetailViewModel {
         guard let item, let modelContext else { return }
         FileStorageService.shared.deleteFiles(for: item)
         modelContext.delete(item)
+        saveContextOrLog(operation: "delete item")
         logger.info("Item deleted: \(item.id)")
     }
 
@@ -238,6 +248,19 @@ final class ItemDetailViewModel {
                 isExporting = false
                 logger.error("Export PDF failed: \(error.localizedDescription)")
             }
+        }
+    }
+
+    private func saveContextOrLog(operation: String) {
+        guard let modelContext else {
+            logger.error("ModelContext unavailable during \(operation)")
+            return
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            logger.error("SwiftData save failed during \(operation): \(error.localizedDescription)")
         }
     }
 }

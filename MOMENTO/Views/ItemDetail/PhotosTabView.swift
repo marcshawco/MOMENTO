@@ -48,12 +48,11 @@ struct PhotosTabView: View {
 
     private func photoCell(_ photo: PhotoAttachment) -> some View {
         Group {
-            if let url = try? FileStorageService.shared.resolveURL(for: photo.fileName),
-               let uiImage = UIImage(contentsOfFile: url.path(percentEncoded: false))
-            {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+            if let url = try? FileStorageService.shared.resolveURL(for: photo.fileName) {
+                DownsampledImageView(
+                    url: url,
+                    targetSize: CGSize(width: 100, height: 100)
+                )
             } else {
                 Rectangle()
                     .fill(.quaternary)

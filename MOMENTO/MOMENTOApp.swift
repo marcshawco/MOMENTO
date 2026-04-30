@@ -9,8 +9,11 @@ struct MOMENTOApp: App {
     @AppStorage(AppConstants.UserDefaultsKeys.hasSeenOnboarding) private var hasSeenOnboarding = false
     @AppStorage(AppConstants.UserDefaultsKeys.isFaceIDEnabled) private var isFaceIDEnabled = false
     @Environment(\.scenePhase) private var scenePhase
+    private let tagsNormalizationDefaultsKey = "momento.tagsNormalization.v1.completed"
 
     init() {
+        StringArrayValueTransformer.register()
+
         let schema = Schema([
             CollectionItem.self,
             PhotoAttachment.self,
@@ -20,6 +23,7 @@ struct MOMENTOApp: App {
 
         do {
             modelContainer = try ModelContainer(for: schema)
+            normalizeTagsIfNeeded()
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }
@@ -66,5 +70,52 @@ struct MOMENTOApp: App {
                 }
             }
         )
+    }
+
+    private func normalizeTagsIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: tagsNormalizationDefaultsKey) else { return }
+
+        let context = ModelContext(modelContainer)
+        let descriptor = FetchDescriptor<CollectionItem>()
+
+        do {
+            let items = try context.fetch(descriptor)
+            var hasChanges = false
+
+            for item in items {
+                let normalized = normalizedTags(item.tags)
+                if normalized != item.tags {
+                    item.tags = normalized
+                    item.touch()
+                    hasChanges = true
+                }
+            }
+
+            if hasChanges {
+                try context.save()
+            }
+
+            defaults.set(true, forKey: tagsNormalizationDefaultsKey)
+        } catch {
+            // Keep running if normalization fails; it can run again next launch.
+        }
+    }
+
+    private func normalizedTags(_ tags: [String]) -> [String] {
+        var seen = Set<String>()
+        var normalized: [String] = []
+
+        for tag in tags {
+            let trimmed = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+
+            let dedupeKey = trimmed.lowercased()
+            if seen.insert(dedupeKey).inserted {
+                normalized.append(trimmed)
+            }
+        }
+
+        return normalized
     }
 }

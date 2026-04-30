@@ -152,15 +152,33 @@ struct MetadataSection: View {
                 }
             }
 
-            DatePicker(
-                "Purchase Date",
-                selection: Binding(
-                    get: { viewModel.purchaseDate ?? .now },
-                    set: { viewModel.purchaseDate = $0 }
-                ),
-                displayedComponents: .date
+            Toggle(
+                "Include Purchase Date",
+                isOn: Binding(
+                    get: { viewModel.purchaseDate != nil },
+                    set: { includeDate in
+                        viewModel.purchaseDate = includeDate ? (viewModel.purchaseDate ?? .now) : nil
+                    }
+                )
             )
             .font(.subheadline)
+
+            if viewModel.purchaseDate != nil {
+                DatePicker(
+                    "Purchase Date",
+                    selection: Binding(
+                        get: { viewModel.purchaseDate ?? .now },
+                        set: { viewModel.purchaseDate = $0 }
+                    ),
+                    displayedComponents: .date
+                )
+                .font(.subheadline)
+
+                Button("Clear Date", role: .destructive) {
+                    viewModel.purchaseDate = nil
+                }
+                .font(.caption.weight(.semibold))
+            }
         }
     }
 

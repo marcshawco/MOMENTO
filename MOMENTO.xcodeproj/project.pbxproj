@@ -6,8 +6,26 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4F73F83CAD5544C952EEAEFD /* CaptureGuidanceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */; };
+		7F20D1F51186ADDE930ED86A /* StringArrayValueTransformerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C680A9061B5AAFF8B00F61E2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 90DFF8862F4A7B42005F8971 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 90DFF88D2F4A7B42005F8971;
+			remoteInfo = MOMENTO;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StringArrayValueTransformerTests.swift; path = MOMENTOTests/StringArrayValueTransformerTests.swift; sourceTree = "<group>"; };
+		5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureGuidanceEngineTests.swift; path = MOMENTOTests/CaptureGuidanceEngineTests.swift; sourceTree = "<group>"; };
 		90DFF88E2F4A7B42005F8971 /* MOMENTO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MOMENTO.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE6EDB0BDFE1BA0361CD0C05 /* MOMENTOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MOMENTOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -19,6 +37,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		2CA9A1169EFF1A4BD49F4286 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		90DFF88B2F4A7B42005F8971 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -29,11 +54,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		13F38960E133E689B9614DE0 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BCE85F62EAD337066448A5A9 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		90DFF8852F4A7B42005F8971 = {
 			isa = PBXGroup;
 			children = (
 				90DFF8902F4A7B42005F8971 /* MOMENTO */,
 				90DFF88F2F4A7B42005F8971 /* Products */,
+				13F38960E133E689B9614DE0 /* Frameworks */,
+				E0E2CD00AD1CE8171AEF2EE4 /* MOMENTOTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -41,13 +76,48 @@
 			isa = PBXGroup;
 			children = (
 				90DFF88E2F4A7B42005F8971 /* MOMENTO.app */,
+				CE6EDB0BDFE1BA0361CD0C05 /* MOMENTOTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BCE85F62EAD337066448A5A9 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		E0E2CD00AD1CE8171AEF2EE4 /* MOMENTOTests */ = {
+			isa = PBXGroup;
+			children = (
+				5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */,
+				024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */,
+			);
+			name = MOMENTOTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		594EAA2829BCCCE8008DC33A /* MOMENTOTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 754D29E6BC265FE12C8A2838 /* Build configuration list for PBXNativeTarget "MOMENTOTests" */;
+			buildPhases = (
+				61CCA8E2E0FCF43AA2A435EC /* Sources */,
+				2CA9A1169EFF1A4BD49F4286 /* Frameworks */,
+				2F5D59B789CDACF67F095756 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				161A8B851819C719DF9B5B2A /* PBXTargetDependency */,
+			);
+			name = MOMENTOTests;
+			productName = MOMENTOTests;
+			productReference = CE6EDB0BDFE1BA0361CD0C05 /* MOMENTOTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		90DFF88D2F4A7B42005F8971 /* MOMENTO */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 90DFF8992F4A7B43005F8971 /* Build configuration list for PBXNativeTarget "MOMENTO" */;
@@ -64,8 +134,6 @@
 				90DFF8902F4A7B42005F8971 /* MOMENTO */,
 			);
 			name = MOMENTO;
-			packageProductDependencies = (
-			);
 			productName = MOMENTO;
 			productReference = 90DFF88E2F4A7B42005F8971 /* MOMENTO.app */;
 			productType = "com.apple.product-type.application";
@@ -100,11 +168,19 @@
 			projectRoot = "";
 			targets = (
 				90DFF88D2F4A7B42005F8971 /* MOMENTO */,
+				594EAA2829BCCCE8008DC33A /* MOMENTOTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2F5D59B789CDACF67F095756 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		90DFF88C2F4A7B42005F8971 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -115,6 +191,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		61CCA8E2E0FCF43AA2A435EC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4F73F83CAD5544C952EEAEFD /* CaptureGuidanceEngineTests.swift in Sources */,
+				7F20D1F51186ADDE930ED86A /* StringArrayValueTransformerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		90DFF88A2F4A7B42005F8971 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -124,7 +209,43 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		161A8B851819C719DF9B5B2A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = MOMENTO;
+			target = 90DFF88D2F4A7B42005F8971 /* MOMENTO */;
+			targetProxy = C680A9061B5AAFF8B00F61E2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		49B316AE04B7433FE0101F64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3LZ2R96K44;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = marcshaw.MOMENTOTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MOMENTO.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MOMENTO";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		90DFF8972F4A7B43005F8971 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -184,6 +305,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -241,6 +363,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -257,14 +380,15 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Momento needs camera access to scan objects and create 3D digital twins of your collectibles.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Momento uses Face ID to protect your private collection.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Momento needs microphone access to record voice memos for your collection items.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Momento needs photo library access to attach photos to your collection items.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Momento uses Face ID to protect your private collection.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -293,14 +417,15 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Momento needs camera access to scan objects and create 3D digital twins of your collectibles.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Momento uses Face ID to protect your private collection.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Momento needs microphone access to record voice memos for your collection items.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Momento needs photo library access to attach photos to your collection items.";
-				INFOPLIST_KEY_NSFaceIDUsageDescription = "Momento uses Face ID to protect your private collection.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -318,9 +443,44 @@
 			};
 			name = Release;
 		};
+		FE708D744C4A4865CA1C5A4D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 3LZ2R96K44;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = marcshaw.MOMENTOTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MOMENTO.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MOMENTO";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		754D29E6BC265FE12C8A2838 /* Build configuration list for PBXNativeTarget "MOMENTOTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				49B316AE04B7433FE0101F64 /* Release */,
+				FE708D744C4A4865CA1C5A4D /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		90DFF8892F4A7B42005F8971 /* Build configuration list for PBXProject "MOMENTO" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -42,7 +42,7 @@ struct LockScreenView: View {
                         await authService.authenticate()
                     }
                 } label: {
-                    Label("Unlock with Face ID", systemImage: "faceid")
+                    Label(unlockButtonTitle, systemImage: unlockButtonIcon)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -55,5 +55,13 @@ struct LockScreenView: View {
         .task {
             await authService.authenticate()
         }
+    }
+
+    private var unlockButtonTitle: String {
+        authService.isBiometricAvailable ? "Unlock with Face ID" : "Unlock"
+    }
+
+    private var unlockButtonIcon: String {
+        authService.isBiometricAvailable ? "faceid" : "lock.open"
     }
 }

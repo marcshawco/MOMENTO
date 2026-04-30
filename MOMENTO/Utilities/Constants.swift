@@ -1,6 +1,6 @@
 import Foundation
 
-enum AppConstants {
+nonisolated enum AppConstants {
     // MARK: - File Storage Directories
     enum Storage {
         static let rootFolder = "Momento"
@@ -14,16 +14,9 @@ enum AppConstants {
     // MARK: - Limits
     enum Limits {
         static let minimumDiskSpaceMB: Int = 500
-        static let thumbnailMaxDimension: CGFloat = 512
-        static let thumbnailCompressionQuality: CGFloat = 0.8
+        static let thumbnailMaxDimension: CGFloat = 1024
         static let gridItemMinWidth: CGFloat = 160
         static let gridSpacing: CGFloat = 16
-    }
-
-    // MARK: - Photo Import
-    enum Photo {
-        static let maxDimension: CGFloat = 2048
-        static let compressionQuality: CGFloat = 0.85
     }
 
     // MARK: - Audio Recording
@@ -60,5 +53,8 @@ enum AppConstants {
         static let hasSeenOnboarding = "hasSeenOnboarding"
         static let isFaceIDEnabled = "isFaceIDEnabled"
         static let preferredSortOrder = "preferredSortOrder"
+        static let enableOnDeviceSuggestions = "enableOnDeviceSuggestions"
+        static let enableCloudSuggestions = "enableCloudSuggestions"
+        static let cloudSuggestionEndpoint = "cloudSuggestionEndpoint"
     }
 }

@@ -6,6 +6,7 @@ import SwiftUI
 struct CaptureContainerView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel = CaptureViewModel()
     @State private var showCancelConfirmation = false
 
@@ -17,7 +18,7 @@ struct CaptureContainerView: View {
         }
         .task {
             viewModel.configure(modelContext: modelContext)
-            viewModel.startSession()
+            await viewModel.startSession()
         }
         .onChange(of: viewModel.createdItemId) {
             // Dismiss after successful save (small delay for user to see success)
@@ -41,6 +42,11 @@ struct CaptureContainerView: View {
         } message: {
             Text("Your captured data will be lost.")
         }
+        .onChange(of: scenePhase) {
+            if scenePhase == .background {
+                viewModel.handleBackgroundTransition()
+            }
+        }
     }
 
     // MARK: - Content Router
@@ -48,10 +54,10 @@ struct CaptureContainerView: View {
     @ViewBuilder
     private var captureContent: some View {
         switch viewModel.flowState {
-        case .idle, .initializing:
+        case .idle:
             initializingView
 
-        case .ready, .detecting, .capturing, .finishing:
+        case .initializing, .ready, .detecting, .capturing, .finishing:
             objectCaptureContent
 
         case .completed:
@@ -102,40 +108,27 @@ struct CaptureContainerView: View {
             ZStack {
                 // Apple's guided capture view
                 ObjectCaptureView(session: session) {
-                    // Camera feed overlay: feedback + controls
-                    captureOverlay
+                    EmptyView()
                 }
 
-                // Top bar with cancel + shot count
-                VStack {
-                    captureTopBar
-                    Spacer()
-                    captureBottomBar
-                }
-            }
-        }
-    }
+                captureTopBar
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-    private var captureOverlay: some View {
-        VStack {
-            Spacer()
+                captureBottomBar
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
-            // Feedback messages
-            if !viewModel.feedbackMessages.isEmpty {
-                VStack(spacing: 6) {
-                    ForEach(Array(viewModel.feedbackMessages), id: \.self) { feedback in
-                        HStack(spacing: 8) {
-                            Image(systemName: feedback.systemImage)
-                            Text(feedback.userMessage)
-                        }
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(.black.opacity(0.6), in: Capsule())
+                if case .initializing = viewModel.flowState {
+                    VStack {
+                        Spacer()
+                        ProgressView("Initializing camera...")
+                            .tint(.white)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(.black.opacity(0.55), in: Capsule())
+                            .padding(.bottom, 24)
                     }
                 }
-                .padding(.bottom, 20)
             }
         }
     }
@@ -151,29 +144,155 @@ struct CaptureContainerView: View {
                 }
             } label: {
                 Image(systemName: "xmark")
-                    .font(.title3.weight(.semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 40, height: 40)
                     .background(.black.opacity(0.5), in: Circle())
             }
 
             Spacer()
 
-            // Shot counter
-            if viewModel.numberOfShotsTaken > 0 {
-                Text("\(viewModel.numberOfShotsTaken) shots")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.black.opacity(0.5), in: Capsule())
+            HStack(spacing: 8) {
+                // Shot counter
+                if viewModel.numberOfShotsTaken > 0 {
+                    Text("\(viewModel.numberOfShotsTaken) shots")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.black.opacity(0.5), in: Capsule())
+                }
+
+                if viewModel.isTorchSupported {
+                    Button {
+                        viewModel.toggleTorch()
+                    } label: {
+                        Image(systemName: viewModel.isTorchOn ? "flashlight.on.fill" : "flashlight.off.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(viewModel.isTorchOn ? .yellow : .white)
+                            .frame(width: 40, height: 40)
+                            .background(.black.opacity(0.5), in: Circle())
+                    }
+                    .accessibilityLabel(viewModel.isTorchOn ? "Turn flashlight off" : "Turn flashlight on")
+                }
             }
         }
         .padding()
     }
 
     private var captureBottomBar: some View {
-        Group {
+        VStack(spacing: 12) {
+            if viewModel.shouldShowStartScanButton {
+                Button {
+                    viewModel.beginUserScan()
+                } label: {
+                    Label(viewModel.startScanButtonTitle, systemImage: "viewfinder.circle.fill")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(
+                            (viewModel.canStartScan ? Color.blue : Color.gray)
+                                .gradient,
+                            in: Capsule()
+                        )
+                }
+                .disabled(!viewModel.canStartScan)
+                .opacity(viewModel.canStartScan ? 1 : 0.7)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            if viewModel.shouldShowAreaModeButton {
+                Button {
+                    viewModel.startAreaModeCapture()
+                } label: {
+                    Label("Start Area Scan", systemImage: "cube.transparent.fill")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(.orange.gradient, in: Capsule())
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Coverage")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Text(viewModel.estimatedCaptureProgressPercentText)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+
+                ProgressView(value: viewModel.estimatedCaptureProgress, total: 1)
+                    .tint(viewModel.userCompletedScanPass ? .green : .blue)
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(viewModel.canRequestImageCapture ? .green : .orange)
+                        .frame(width: 8, height: 8)
+                    Text(viewModel.planeStatusText)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: viewModel.currentGuidance.systemImage)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(guidanceAccentColor)
+                        .frame(width: 16)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Next step: \(viewModel.currentGuidance.title)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                        Text(viewModel.currentGuidance.detail)
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.86))
+                            .lineLimit(2)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(guidanceAccentColor.opacity(0.18), in: RoundedRectangle(cornerRadius: 10))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 14))
+
+            if viewModel.shouldShowResetDetectionButton || viewModel.shouldShowManualCaptureButton {
+                HStack(spacing: 10) {
+                    if viewModel.shouldShowResetDetectionButton {
+                        Button {
+                            viewModel.resetDetectionAndRetry()
+                        } label: {
+                            Label("Reset Detection", systemImage: "arrow.triangle.2.circlepath")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(.orange.gradient, in: Capsule())
+                        }
+                    }
+
+                    if viewModel.shouldShowManualCaptureButton {
+                        Button {
+                            viewModel.requestSingleImageCapture()
+                        } label: {
+                            Label("Capture Shot", systemImage: "camera.circle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(.blue.gradient, in: Capsule())
+                        }
+                    }
+                }
+            }
+
             if viewModel.userCompletedScanPass {
                 Button {
                     viewModel.finishCapture()
@@ -185,11 +304,26 @@ struct CaptureContainerView: View {
                         .padding(.vertical, 14)
                         .background(.green.gradient, in: Capsule())
                 }
-                .padding(.bottom, 40)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 28)
         .animation(.spring(duration: 0.3), value: viewModel.userCompletedScanPass)
+        .animation(.spring(duration: 0.3), value: viewModel.shouldShowStartScanButton)
+    }
+
+    private var guidanceAccentColor: Color {
+        switch viewModel.currentGuidance.severity {
+        case .critical:
+            return .red
+        case .warning:
+            return .orange
+        case .info:
+            return .blue
+        case .success:
+            return .green
+        }
     }
 
     // MARK: - Success View

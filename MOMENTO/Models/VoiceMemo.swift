@@ -3,8 +3,7 @@ import SwiftData
 
 @Model
 final class VoiceMemo {
-    #Unique<VoiceMemo>([\.id])
-
+    @Attribute(.unique)
     var id: UUID
     var fileName: String
     var duration: TimeInterval

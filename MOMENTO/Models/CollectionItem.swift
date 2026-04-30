@@ -3,13 +3,13 @@ import SwiftData
 
 @Model
 final class CollectionItem {
-    #Unique<CollectionItem>([\.id])
-
+    @Attribute(.unique)
     var id: UUID
     var title: String
     var itemDescription: String
     var createdAt: Date
     var updatedAt: Date
+    @Attribute(.transformable(by: StringArrayValueTransformer.self))
     var tags: [String]
     var collectionName: String
 

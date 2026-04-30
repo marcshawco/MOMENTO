@@ -3,8 +3,7 @@ import SwiftData
 
 @Model
 final class TextMemory {
-    #Unique<TextMemory>([\.id])
-
+    @Attribute(.unique)
     var id: UUID
     var body: String
     var createdAt: Date

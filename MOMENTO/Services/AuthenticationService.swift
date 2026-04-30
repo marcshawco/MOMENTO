@@ -3,6 +3,7 @@ import os
 
 /// Manages biometric (FaceID/TouchID) authentication state.
 /// MainActor-isolated (default) since it drives UI state directly.
+@MainActor
 @Observable
 final class AuthenticationService {
 
@@ -31,28 +32,31 @@ final class AuthenticationService {
         context.localizedCancelTitle = "Cancel"
 
         var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            // Biometric not available (Simulator, no FaceID, etc.) — auto-unlock
-            logger.info("Biometric unavailable, auto-unlocking: \(error?.localizedDescription ?? "unknown")")
-            isUnlocked = true
-            authError = nil
+        let policy: LAPolicy = .deviceOwnerAuthentication
+
+        guard context.canEvaluatePolicy(policy, error: &error) else {
+            // Keep app locked if authentication cannot be evaluated.
+            isUnlocked = false
+            authError = "Device authentication is unavailable."
+            logger.warning("Authentication unavailable: \(error?.localizedDescription ?? "unknown")")
             return
         }
 
         do {
             let success = try await context.evaluatePolicy(
-                .deviceOwnerAuthenticationWithBiometrics,
+                policy,
                 localizedReason: "Unlock your Momento collection"
             )
 
             if success {
                 isUnlocked = true
                 authError = nil
-                logger.info("Biometric authentication succeeded")
+                logger.info("Authentication succeeded")
             }
         } catch {
+            isUnlocked = false
             authError = error.localizedDescription
-            logger.warning("Biometric authentication failed: \(error.localizedDescription)")
+            logger.warning("Authentication failed: \(error.localizedDescription)")
         }
     }
 

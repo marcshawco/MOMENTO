@@ -20,12 +20,12 @@ nonisolated final class ThumbnailService: Sendable {
             switch self {
             case .sceneLoadFailed: "Failed to load 3D model for thumbnail"
             case .renderFailed: "Failed to render thumbnail"
-            case .compressionFailed: "Failed to compress thumbnail image"
+            case .compressionFailed: "Failed to encode thumbnail image"
             }
         }
     }
 
-    /// Generates a JPEG thumbnail from a USDZ file. Must hop to MainActor for SceneKit rendering.
+    /// Generates a PNG thumbnail from a USDZ file. Must hop to MainActor for SceneKit rendering.
     func generateThumbnail(
         from usdzURL: URL,
         size: CGFloat = AppConstants.Limits.thumbnailMaxDimension
@@ -51,11 +51,11 @@ nonisolated final class ThumbnailService: Sendable {
 
             let image = renderer.snapshot(atTime: 0, with: renderSize, antialiasingMode: .multisampling4X)
 
-            guard let jpegData = image.jpegData(compressionQuality: AppConstants.Limits.thumbnailCompressionQuality) else {
+            guard let pngData = image.pngData() else {
                 throw ThumbnailError.compressionFailed
             }
 
-            return jpegData
+            return pngData
         }
     }
 

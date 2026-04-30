@@ -94,9 +94,9 @@ struct ItemDetailView: View {
         .onDisappear {
             viewModel.saveIfNeeded()
         }
-        .sheet(isPresented: $viewModel.showingARQuickLook) {
+        .fullScreenCover(isPresented: $viewModel.showingARQuickLook) {
             if let url = viewModel.modelURL {
-                ARQuickLookView(modelURL: url)
+                ARPreviewContainerView(modelURL: url)
             }
         }
         .confirmationDialog(
