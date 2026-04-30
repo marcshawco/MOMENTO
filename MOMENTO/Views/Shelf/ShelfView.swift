@@ -41,9 +41,9 @@ struct ShelfView: View {
                     Button {
                         showingSettings = true
                     } label: {
-                        Image(systemName: "gearshape")
+                        Label("Settings", systemImage: "gearshape")
+                            .labelStyle(.iconOnly)
                     }
-                    .accessibilityLabel("Settings")
                 }
             }
             .overlay(alignment: .bottomTrailing) {
@@ -175,9 +175,9 @@ struct ShelfView: View {
                 }
             }
         } label: {
-            Image(systemName: "arrow.up.arrow.down")
+            Label("Sort items", systemImage: "arrow.up.arrow.down")
+                .labelStyle(.iconOnly)
         }
-        .accessibilityLabel("Sort items")
     }
 
     private var filterMenu: some View {
@@ -216,9 +216,9 @@ struct ShelfView: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
+            Label("Filter items", systemImage: "line.3.horizontal.decrease.circle")
+                .labelStyle(.iconOnly)
         }
-        .accessibilityLabel("Filter items")
     }
 
     // MARK: - Logic
