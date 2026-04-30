@@ -48,6 +48,7 @@ enum CaptureError: Error, LocalizedError {
     case initializationTimedOut
     case captureDidNotBegin
     case appMovedToBackground
+    case captureSetQualityInsufficient(CaptureSetQualityReport)
     case sessionFailed(any Error)
     case reconstructionFailed(any Error)
     case thumbnailGenerationFailed(any Error)
@@ -67,6 +68,8 @@ enum CaptureError: Error, LocalizedError {
             "Scanning did not start. Reposition the object and try again."
         case .appMovedToBackground:
             "Capture was interrupted because Momento moved to the background. Keep the app open while scanning."
+        case .captureSetQualityInsufficient(let report):
+            "The captured photo set is not ready for reconstruction. \(report.userMessage)"
         case .sessionFailed(let error):
             "Capture failed: \(error.localizedDescription)"
         case .reconstructionFailed(let error):
@@ -612,8 +615,6 @@ final class CaptureViewModel {
         }
 
         let itemId = UUID()
-        flowState = .reconstructing(progress: 0)
-
         reconstructionTask = Task { [weak self] in
             guard let self else { return }
 
@@ -621,6 +622,15 @@ final class CaptureViewModel {
                 let outputURL = try FileStorageService.shared.modelsDirectory()
                     .appendingPathComponent("\(itemId.uuidString).usdz")
 
+                let qualityReport = await CaptureSetQualityService.shared.assessImageSet(at: imagesDir)
+                guard qualityReport.isReconstructionReady else {
+                    self.flowState = .failed(.captureSetQualityInsufficient(qualityReport))
+                    self.cancelAllTasks()
+                    self.cleanup()
+                    return
+                }
+
+                self.flowState = .reconstructing(progress: 0)
                 logger.info("Starting reconstruction. Output: \(outputURL.lastPathComponent)")
 
                 // Create and start PhotogrammetrySession
@@ -636,8 +646,8 @@ final class CaptureViewModel {
                 reconstructionConfig.sampleOrdering = .sequential
                 let pgSession = try PhotogrammetrySession(input: imagesDir, configuration: reconstructionConfig)
                 try pgSession.process(requests: [
-                    .modelFile(url: outputURL)
-                    // iOS only supports .reduced detail level
+                    // Uncertain Apple API detail: iOS currently supports .reduced only; request it explicitly as the maximum on-device detail level.
+                    .modelFile(url: outputURL, detail: .reduced)
                 ])
 
                 // Monitor reconstruction progress

@@ -52,6 +52,39 @@ final class CaptureGuidanceEngineTests: XCTestCase {
         XCTAssertEqual(guidance.title, "Stabilize tracking")
     }
 
+    func testCaptureSetQualityAcceptsStrongImageSet() {
+        let report = CaptureSetQualityService.evaluate(
+            metrics: CaptureSetQualityMetrics(
+                totalImages: 42,
+                analyzedImages: 42,
+                usableImages: 38,
+                averageBrightness: 0.5,
+                averageSharpness: 0.04
+            )
+        )
+
+        XCTAssertTrue(report.isReconstructionReady)
+        XCTAssertTrue(report.issues.isEmpty)
+    }
+
+    func testCaptureSetQualityRejectsWeakImageSetBeforeReconstruction() {
+        let report = CaptureSetQualityService.evaluate(
+            metrics: CaptureSetQualityMetrics(
+                totalImages: 12,
+                analyzedImages: 12,
+                usableImages: 5,
+                averageBrightness: 0.08,
+                averageSharpness: 0.006
+            )
+        )
+
+        XCTAssertFalse(report.isReconstructionReady)
+        XCTAssertTrue(report.issues.contains(.tooFewImages))
+        XCTAssertTrue(report.issues.contains(.tooFewUsableImages))
+        XCTAssertTrue(report.issues.contains(.tooDark))
+        XCTAssertTrue(report.issues.contains(.tooSoft))
+    }
+
     private func snapshot(
         flowState: CaptureGuidanceFlowState = .capturing,
         trackingIsNormal: Bool = true,
