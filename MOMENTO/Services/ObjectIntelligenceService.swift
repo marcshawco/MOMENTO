@@ -185,14 +185,8 @@ final class ObjectIntelligenceService {
 
     private func cloudSuggestion(from imageData: Data) async -> ObjectMetadataSuggestion? {
         let rawEndpoint = userDefaults.string(forKey: AppConstants.UserDefaultsKeys.cloudSuggestionEndpoint) ?? ""
-        let endpointString = rawEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !endpointString.isEmpty, let endpointURL = URL(string: endpointString) else {
-            logger.info("Cloud suggestion enabled but endpoint is not configured")
-            return nil
-        }
-
-        guard Self.isAllowedCloudSuggestionEndpoint(endpointURL) else {
-            logger.warning("Cloud suggestion endpoint rejected because it is not HTTPS")
+        guard let endpointURL = Self.normalizedAllowedCloudSuggestionEndpoint(rawEndpoint) else {
+            logger.warning("Cloud suggestion enabled but endpoint is missing or not an allowed HTTPS URL")
             return nil
         }
 
@@ -262,5 +256,16 @@ final class ObjectIntelligenceService {
         }
 
         return url.host?.isEmpty == false
+    }
+
+    nonisolated static func normalizedAllowedCloudSuggestionEndpoint(_ rawEndpoint: String) -> URL? {
+        let endpointString = rawEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !endpointString.isEmpty,
+              let endpointURL = URL(string: endpointString),
+              isAllowedCloudSuggestionEndpoint(endpointURL) else {
+            return nil
+        }
+
+        return endpointURL
     }
 }

@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var exportError: String?
     @State private var cleanupMessage: String?
     @State private var securityMessage: String?
+    @State private var cloudSuggestionsMessage: String?
     @State private var showingCloudConsent = false
 
     var body: some View {
@@ -37,20 +38,22 @@ struct SettingsView: View {
                         Label("Cloud Suggestions (Optional)", systemImage: "icloud")
                     }
 
-                    if enableCloudSuggestions {
-                        TextField(
-                            "Cloud endpoint URL",
-                            text: $cloudSuggestionEndpoint,
-                            prompt: Text("https://example.com/suggest")
-                        )
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
+                    TextField(
+                        "Cloud endpoint URL",
+                        text: $cloudSuggestionEndpoint,
+                        prompt: Text("https://example.com/suggest")
+                    )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        normalizeCloudSuggestionEndpoint()
                     }
 
                     Text(enableCloudSuggestions
                          ? "If enabled, Momento sends one downsampled image to your endpoint for metadata suggestions."
-                         : "All object suggestions stay on-device unless cloud suggestions are explicitly enabled.")
+                         : "Enter a valid HTTPS endpoint before enabling cloud suggestions.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -152,12 +155,19 @@ struct SettingsView: View {
                     Text(securityMessage)
                 }
             }
+            .alert("Cloud Suggestions", isPresented: cloudSuggestionsAlertBinding) {
+                Button("OK") { cloudSuggestionsMessage = nil }
+            } message: {
+                if let cloudSuggestionsMessage {
+                    Text(cloudSuggestionsMessage)
+                }
+            }
             .alert("Enable Cloud Suggestions?", isPresented: $showingCloudConsent) {
                 Button("Cancel", role: .cancel) {
                     enableCloudSuggestions = false
                 }
                 Button("Enable") {
-                    enableCloudSuggestions = true
+                    enableCloudSuggestionsIfConfigured()
                 }
             } message: {
                 Text("Momento will send one downsampled image from a scan to your configured HTTPS endpoint when on-device suggestions are unavailable or low-confidence.")
@@ -247,6 +257,7 @@ struct SettingsView: View {
             get: { enableCloudSuggestions },
             set: { newValue in
                 if newValue {
+                    normalizeCloudSuggestionEndpoint()
                     showingCloudConsent = true
                 } else {
                     enableCloudSuggestions = false
@@ -288,6 +299,17 @@ struct SettingsView: View {
         )
     }
 
+    private var cloudSuggestionsAlertBinding: Binding<Bool> {
+        Binding(
+            get: { cloudSuggestionsMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    cloudSuggestionsMessage = nil
+                }
+            }
+        )
+    }
+
     private func handleFaceIDToggle(_ newValue: Bool) {
         guard newValue else {
             isFaceIDEnabled = false
@@ -302,6 +324,22 @@ struct SettingsView: View {
                 securityMessage = authService.authError ?? "Momento could not verify your identity."
             }
         }
+    }
+
+    private func normalizeCloudSuggestionEndpoint() {
+        cloudSuggestionEndpoint = cloudSuggestionEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func enableCloudSuggestionsIfConfigured() {
+        normalizeCloudSuggestionEndpoint()
+
+        guard ObjectIntelligenceService.normalizedAllowedCloudSuggestionEndpoint(cloudSuggestionEndpoint) != nil else {
+            enableCloudSuggestions = false
+            cloudSuggestionsMessage = "Cloud suggestions require a valid HTTPS endpoint before they can be enabled."
+            return
+        }
+
+        enableCloudSuggestions = true
     }
 
     private var referencedFileNames: Set<String> {

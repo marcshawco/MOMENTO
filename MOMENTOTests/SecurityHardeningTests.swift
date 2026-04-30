@@ -25,4 +25,15 @@ final class SecurityHardeningTests: XCTestCase {
         XCTAssertFalse(ObjectIntelligenceService.isAllowedCloudSuggestionEndpoint(httpURL))
         XCTAssertFalse(ObjectIntelligenceService.isAllowedCloudSuggestionEndpoint(fileURL))
     }
+
+    func testCloudSuggestionEndpointNormalizationTrimsAndRejectsInvalidValues() throws {
+        let normalizedURL = try XCTUnwrap(
+            ObjectIntelligenceService.normalizedAllowedCloudSuggestionEndpoint("  https://example.com/suggest  ")
+        )
+
+        XCTAssertEqual(normalizedURL.absoluteString, "https://example.com/suggest")
+        XCTAssertNil(ObjectIntelligenceService.normalizedAllowedCloudSuggestionEndpoint(""))
+        XCTAssertNil(ObjectIntelligenceService.normalizedAllowedCloudSuggestionEndpoint("example.com/suggest"))
+        XCTAssertNil(ObjectIntelligenceService.normalizedAllowedCloudSuggestionEndpoint("http://example.com/suggest"))
+    }
 }
