@@ -391,6 +391,8 @@
 				DEVELOPMENT_TEAM = 3LZ2R96K44;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Momento;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Momento needs camera access to scan objects and create 3D digital twins of your collectibles.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Momento uses Face ID to protect your private collection.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Momento needs microphone access to record voice memos for your collection items.";
@@ -428,6 +430,8 @@
 				DEVELOPMENT_TEAM = 3LZ2R96K44;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Momento;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Momento needs camera access to scan objects and create 3D digital twins of your collectibles.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Momento uses Face ID to protect your private collection.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Momento needs microphone access to record voice memos for your collection items.";
