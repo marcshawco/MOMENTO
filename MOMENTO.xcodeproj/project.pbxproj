@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4F73F83CAD5544C952EEAEFD /* CaptureGuidanceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */; };
 		7F20D1F51186ADDE930ED86A /* StringArrayValueTransformerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */; };
+		A59F931A9E5B4BE88AC4D93F /* PhotoImportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E1BB7C3E4641139E25AC03 /* PhotoImportServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,6 +27,7 @@
 		5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureGuidanceEngineTests.swift; path = MOMENTOTests/CaptureGuidanceEngineTests.swift; sourceTree = "<group>"; };
 		90DFF88E2F4A7B42005F8971 /* MOMENTO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MOMENTO.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE6EDB0BDFE1BA0361CD0C05 /* MOMENTOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MOMENTOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F3E1BB7C3E4641139E25AC03 /* PhotoImportServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PhotoImportServiceTests.swift; path = MOMENTOTests/PhotoImportServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -92,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */,
+				F3E1BB7C3E4641139E25AC03 /* PhotoImportServiceTests.swift */,
 				024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */,
 			);
 			name = MOMENTOTests;
@@ -196,6 +199,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F73F83CAD5544C952EEAEFD /* CaptureGuidanceEngineTests.swift in Sources */,
+				A59F931A9E5B4BE88AC4D93F /* PhotoImportServiceTests.swift in Sources */,
 				7F20D1F51186ADDE930ED86A /* StringArrayValueTransformerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

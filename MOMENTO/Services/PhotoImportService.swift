@@ -1,8 +1,8 @@
-import Foundation
 import ImageIO
+import Foundation
 import os
 
-/// Imports photos at original fidelity (no resize / no recompression).
+/// Imports photos while removing location metadata before writing them to app storage.
 nonisolated final class PhotoImportService: Sendable {
 
     static let shared = PhotoImportService()
@@ -27,18 +27,47 @@ nonisolated final class PhotoImportService: Sendable {
 
     // MARK: - Public API
 
-    /// Saves the original image bytes to the Photos directory.
+    /// Saves image bytes to the Photos directory after stripping GPS/location metadata when possible.
     /// Returns the relative file name stored in SwiftData.
     @discardableResult
     func importPhoto(imageData: Data) throws -> String {
         let fileExtension = try inferredImageFileExtension(from: imageData)
+        let sanitizedData = try sanitizedImageData(from: imageData)
         let fileName = try FileStorageService.shared.saveFile(
-            data: imageData,
+            data: sanitizedData,
             directory: AppConstants.Storage.photosFolder,
             fileName: "\(UUID().uuidString).\(fileExtension)"
         )
-        logger.info("Photo imported at original quality: \(fileName)")
+        logger.info("Photo imported with location metadata removed: \(fileName)")
         return fileName
+    }
+
+    /// Returns image data with GPS metadata removed. Exposed for focused tests.
+    func sanitizedImageData(from imageData: Data) throws -> Data {
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+              let type = CGImageSourceGetType(source) else {
+            throw PhotoImportError.invalidImageData
+        }
+
+        guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            throw PhotoImportError.processingFailed
+        }
+
+        let outputData = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(outputData, type, 1, nil) else {
+            throw PhotoImportError.processingFailed
+        }
+
+        let sourceProperties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        var sanitizedProperties = sourceProperties ?? [:]
+        sanitizedProperties.removeValue(forKey: kCGImagePropertyGPSDictionary)
+
+        CGImageDestinationAddImage(destination, cgImage, sanitizedProperties as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else {
+            throw PhotoImportError.processingFailed
+        }
+
+        return outputData as Data
     }
 
     private func inferredImageFileExtension(from imageData: Data) throws -> String {

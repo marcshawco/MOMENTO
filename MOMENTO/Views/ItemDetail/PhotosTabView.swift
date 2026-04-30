@@ -8,7 +8,10 @@ struct PhotosTabView: View {
 
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var selectedPhotoForPreview: PhotoAttachment?
+    @State private var captionPhoto: PhotoAttachment?
+    @State private var captionText = ""
     @State private var isImporting = false
+    @State private var importError: String?
 
     private let columns = [
         GridItem(.adaptive(minimum: 100), spacing: 8)
@@ -16,11 +19,26 @@ struct PhotosTabView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let importError {
+                Label(importError, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("PhotoImportError")
+            }
+
             photoGrid
             importButton
         }
         .fullScreenCover(item: $selectedPhotoForPreview) { photo in
             PhotoFullScreenView(photo: photo)
+        }
+        .sheet(item: $captionPhoto) { photo in
+            PhotoCaptionEditorSheet(
+                caption: $captionText,
+                photo: photo
+            ) {
+                viewModel.updatePhotoCaption(photo, caption: captionText)
+            }
         }
     }
 
@@ -71,6 +89,11 @@ struct PhotosTabView: View {
             if !photo.caption.isEmpty {
                 Text(photo.caption)
             }
+            Button {
+                beginEditingCaption(for: photo)
+            } label: {
+                Label(photo.caption.isEmpty ? "Add Caption" : "Edit Caption", systemImage: "text.bubble")
+            }
             Button(role: .destructive) {
                 viewModel.deletePhoto(photo)
             } label: {
@@ -108,14 +131,31 @@ struct PhotosTabView: View {
     private func importSelectedPhotos() async {
         guard !selectedPhotoItems.isEmpty else { return }
         isImporting = true
+        importError = nil
+        var didFail = false
 
         for pickerItem in selectedPhotoItems {
-            guard let data = try? await pickerItem.loadTransferable(type: Data.self) else { continue }
-            try? viewModel.addPhoto(data: data)
+            do {
+                guard let data = try await pickerItem.loadTransferable(type: Data.self) else {
+                    didFail = true
+                    continue
+                }
+                try viewModel.addPhoto(data: data)
+            } catch {
+                didFail = true
+            }
         }
 
         selectedPhotoItems = []
         isImporting = false
+        if didFail {
+            importError = "Some photos could not be imported."
+        }
+    }
+
+    private func beginEditingCaption(for photo: PhotoAttachment) {
+        captionText = photo.caption
+        captionPhoto = photo
     }
 }
 
@@ -135,21 +175,31 @@ struct PhotoFullScreenView: View {
                 if let url = try? FileStorageService.shared.resolveURL(for: photo.fileName),
                    let uiImage = UIImage(contentsOfFile: url.path(percentEncoded: false))
                 {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .scaleEffect(scale)
-                        .gesture(
-                            MagnifyGesture()
-                                .onChanged { value in
-                                    scale = value.magnification
-                                }
-                                .onEnded { _ in
-                                    withAnimation(.spring) {
-                                        scale = 1.0
+                    VStack(spacing: 16) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .scaleEffect(scale)
+                            .gesture(
+                                MagnifyGesture()
+                                    .onChanged { value in
+                                        scale = value.magnification
                                     }
-                                }
-                        )
+                                    .onEnded { _ in
+                                        withAnimation(.spring) {
+                                            scale = 1.0
+                                        }
+                                    }
+                            )
+
+                        if !photo.caption.isEmpty {
+                            Text(photo.caption)
+                                .font(.subheadline)
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                    }
                 } else {
                     ContentUnavailableView("Photo Not Found", systemImage: "photo")
                 }
@@ -168,5 +218,45 @@ struct PhotoFullScreenView: View {
             }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
+    }
+}
+
+// MARK: - Photo Caption Editor
+
+struct PhotoCaptionEditorSheet: View {
+
+    @Binding var caption: String
+    let photo: PhotoAttachment
+    let onSave: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Caption") {
+                    TextField("Caption", text: $caption, axis: .vertical)
+                        .lineLimit(2...5)
+                        .focused($isFocused)
+                }
+            }
+            .navigationTitle(photo.caption.isEmpty ? "Add Caption" : "Edit Caption")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave()
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .onAppear { isFocused = true }
+        }
+        .presentationDetents([.medium])
     }
 }

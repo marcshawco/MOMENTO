@@ -150,6 +150,12 @@ final class ItemDetailViewModel {
         saveContextOrLog(operation: "delete photo")
     }
 
+    func updatePhotoCaption(_ photo: PhotoAttachment, caption: String) {
+        photo.caption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        item?.touch()
+        saveContextOrLog(operation: "update photo caption")
+    }
+
     // MARK: - Voice Memos
 
     func addVoiceMemo(fileURL: URL, duration: TimeInterval) throws {
