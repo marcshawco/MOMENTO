@@ -88,6 +88,13 @@ struct ItemDetailView: View {
                 ShareSheetView(activityItems: [url])
             }
         }
+        .alert("Export Error", isPresented: .constant(viewModel.exportError != nil)) {
+            Button("OK") { viewModel.exportError = nil }
+        } message: {
+            if let exportError = viewModel.exportError {
+                Text(exportError)
+            }
+        }
         .onAppear {
             viewModel.configure(item: item, modelContext: modelContext)
         }

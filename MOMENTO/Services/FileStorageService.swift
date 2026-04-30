@@ -1,6 +1,15 @@
 import Foundation
 import os
 
+struct StorageCleanupSummary: Sendable, Equatable {
+    let deletedFiles: Int
+    let reclaimedBytes: Int64
+
+    var reclaimedMegabytes: Double {
+        Double(reclaimedBytes) / 1_048_576.0
+    }
+}
+
 /// Manages file storage for large binary assets (USDZ models, thumbnails, photos, voice memos).
 /// All files are stored under Application Support/Momento/ with subdirectories per asset type.
 /// SwiftData models store only relative file names; this service resolves full paths.
@@ -131,6 +140,55 @@ nonisolated final class FileStorageService: Sendable {
         }
     }
 
+    /// Removes all temporary capture session directories.
+    func cleanupAllCaptureTemp() -> StorageCleanupSummary {
+        guard let tempDir = try? subdirectory(AppConstants.Storage.captureTempFolder) else {
+            return StorageCleanupSummary(deletedFiles: 0, reclaimedBytes: 0)
+        }
+        return removeContents(of: tempDir)
+    }
+
+    /// Deletes managed asset files that are no longer referenced by SwiftData metadata.
+    func cleanupUnreferencedFiles(referencedFileNames: Set<String>) -> StorageCleanupSummary {
+        let folders = [
+            AppConstants.Storage.modelsFolder,
+            AppConstants.Storage.thumbnailsFolder,
+            AppConstants.Storage.photosFolder,
+            AppConstants.Storage.voiceMemosFolder,
+        ]
+
+        var deletedFiles = 0
+        var reclaimedBytes: Int64 = 0
+
+        for folder in folders {
+            guard let dir = try? subdirectory(folder),
+                  let urls = try? FileManager.default.contentsOfDirectory(
+                    at: dir,
+                    includingPropertiesForKeys: [.fileSizeKey],
+                    options: [.skipsHiddenFiles]
+                  ) else {
+                continue
+            }
+
+            for url in urls {
+                let relativePath = "\(folder)/\(url.lastPathComponent)"
+                guard !referencedFileNames.contains(relativePath) else { continue }
+
+                let byteCount = fileSize(url: url)
+                do {
+                    try FileManager.default.removeItem(at: url)
+                    deletedFiles += 1
+                    reclaimedBytes += byteCount
+                    logger.info("Deleted unreferenced file: \(relativePath)")
+                } catch {
+                    logger.warning("Failed to delete unreferenced file \(relativePath): \(error.localizedDescription)")
+                }
+            }
+        }
+
+        return StorageCleanupSummary(deletedFiles: deletedFiles, reclaimedBytes: reclaimedBytes)
+    }
+
     // MARK: - Disk Space
 
     /// Returns available disk space in megabytes.
@@ -161,6 +219,7 @@ nonisolated final class FileStorageService: Sendable {
             _ = try thumbnailsDirectory()
             _ = try photosDirectory()
             _ = try voiceMemosDirectory()
+            _ = try subdirectory(AppConstants.Storage.captureTempFolder)
             logger.info("Directory structure verified")
         } catch {
             logger.error("Failed to create directory structure: \(error.localizedDescription)")
@@ -173,5 +232,61 @@ nonisolated final class FileStorageService: Sendable {
         let dir = try rootDirectory.appendingPathComponent(name, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
+    }
+
+    private func removeContents(of directory: URL) -> StorageCleanupSummary {
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return StorageCleanupSummary(deletedFiles: 0, reclaimedBytes: 0)
+        }
+
+        var deletedFiles = 0
+        var reclaimedBytes: Int64 = 0
+
+        for url in urls {
+            let byteCount = recursiveSize(url: url)
+            do {
+                try FileManager.default.removeItem(at: url)
+                deletedFiles += 1
+                reclaimedBytes += byteCount
+            } catch {
+                logger.warning("Failed to remove temporary file \(url.lastPathComponent): \(error.localizedDescription)")
+            }
+        }
+
+        return StorageCleanupSummary(deletedFiles: deletedFiles, reclaimedBytes: reclaimedBytes)
+    }
+
+    private func recursiveSize(url: URL) -> Int64 {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false), isDirectory: &isDirectory) else {
+            return 0
+        }
+
+        if !isDirectory.boolValue {
+            return fileSize(url: url)
+        }
+
+        guard let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return 0
+        }
+
+        var total: Int64 = 0
+        for case let fileURL as URL in enumerator {
+            total += fileSize(url: fileURL)
+        }
+        return total
+    }
+
+    private func fileSize(url: URL) -> Int64 {
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey])
+        return Int64(values?.fileSize ?? 0)
     }
 }

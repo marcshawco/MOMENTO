@@ -238,6 +238,9 @@ final class ItemDetailViewModel {
     /// Whether to show the share sheet.
     var showingShareSheet = false
 
+    /// User-facing export failure message.
+    var exportError: String?
+
     /// Generates a single-item PDF and presents the share sheet.
     func exportAsPDF() {
         guard let item else { return }
@@ -252,6 +255,7 @@ final class ItemDetailViewModel {
                 showingShareSheet = true
             } catch {
                 isExporting = false
+                exportError = error.localizedDescription
                 logger.error("Export PDF failed: \(error.localizedDescription)")
             }
         }

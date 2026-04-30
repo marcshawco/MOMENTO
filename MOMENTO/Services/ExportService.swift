@@ -1,5 +1,42 @@
+import CryptoKit
 import UIKit
 import os
+
+// MARK: - Data Archive Manifest
+
+nonisolated struct MomentoDataArchive: Codable, Equatable {
+    let schemaVersion: Int
+    let generatedAt: Date
+    let appName: String
+    let itemCount: Int
+    let items: [MomentoArchiveItem]
+}
+
+nonisolated struct MomentoArchiveItem: Codable, Equatable {
+    let id: UUID
+    let title: String
+    let description: String
+    let createdAt: Date
+    let updatedAt: Date
+    let tags: [String]
+    let collectionName: String
+    let purchaseDate: Date?
+    let purchasePrice: Double?
+    let estimatedValue: Double?
+    let serialNumber: String?
+    let provenanceNotes: String?
+    let assets: [MomentoArchiveAsset]
+    let photoCaptions: [String: String]
+    let voiceMemoDurations: [String: TimeInterval]
+    let textMemories: [String]
+}
+
+nonisolated struct MomentoArchiveAsset: Codable, Equatable {
+    let kind: String
+    let relativePath: String
+    let byteCount: Int64?
+    let sha256: String?
+}
 
 /// Generates PDF insurance reports and CSV catalogs from CollectionItem data.
 /// All methods are synchronous and produce temp file URLs suitable for UIActivityViewController.
@@ -16,12 +53,14 @@ nonisolated final class ExportService: Sendable {
     enum ExportError: Error, LocalizedError {
         case pdfGenerationFailed
         case csvGenerationFailed
+        case archiveGenerationFailed
         case noItems
 
         var errorDescription: String? {
             switch self {
             case .pdfGenerationFailed: "Failed to generate PDF report."
             case .csvGenerationFailed: "Failed to generate CSV file."
+            case .archiveGenerationFailed: "Failed to generate data archive."
             case .noItems: "No items to export."
             }
         }
@@ -66,7 +105,7 @@ nonisolated final class ExportService: Sendable {
     func generateCSV(items: [CollectionItem]) throws -> URL {
         guard !items.isEmpty else { throw ExportError.noItems }
 
-        var csv = "Title,Collection,Description,Tags,Purchase Date,Purchase Price,Estimated Value,Serial Number,Provenance Notes,Photos,Voice Memos,Notes,Created,Updated\n"
+        var csv = "Title,Collection,Description,Tags,Purchase Date,Purchase Price,Estimated Value,Serial Number,Provenance Notes,Model File,Thumbnail File,Photos,Voice Memos,Notes,Created,Updated\n"
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .short
@@ -82,6 +121,8 @@ nonisolated final class ExportService: Sendable {
                 item.estimatedValue.map { String(format: "%.2f", $0) } ?? "",
                 escapeCSV(item.serialNumber ?? ""),
                 escapeCSV(item.provenanceNotes ?? ""),
+                escapeCSV(item.modelFileName ?? ""),
+                escapeCSV(item.thumbnailFileName ?? ""),
                 "\(item.photoAttachments.count)",
                 "\(item.voiceMemos.count)",
                 "\(item.textMemories.count)",
@@ -95,6 +136,77 @@ nonisolated final class ExportService: Sendable {
         try csv.write(to: url, atomically: true, encoding: .utf8)
         logger.info("CSV exported: \(items.count) items")
         return url
+    }
+
+    // MARK: - Data Archive
+
+    /// Generates a privacy-safe JSON manifest plus a list of local asset URLs that can be shared together.
+    /// The manifest contains relative asset paths and checksums, never GPS/EXIF dictionaries.
+    func generateDataArchive(items: [CollectionItem]) throws -> [URL] {
+        guard !items.isEmpty else { throw ExportError.noItems }
+
+        let manifest = makeDataArchiveManifest(items: items)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+
+        let data: Data
+        do {
+            data = try encoder.encode(manifest)
+        } catch {
+            throw ExportError.archiveGenerationFailed
+        }
+
+        let manifestURL = try exportFileURL(name: "Momento_Data_Archive", extension: "json")
+        try data.write(to: manifestURL, options: .atomic)
+
+        let assetURLs = archiveAssetURLs(from: manifest)
+        logger.info("Data archive manifest generated: \(items.count) items, \(assetURLs.count) assets")
+        return [manifestURL] + assetURLs
+    }
+
+    func makeDataArchiveManifest(items: [CollectionItem]) -> MomentoDataArchive {
+        let sortedItems = items.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+        let archiveItems = sortedItems.map { item in
+            let assets = archiveAssets(for: item)
+            let photoCaptions = Dictionary(
+                uniqueKeysWithValues: item.photoAttachments
+                    .filter { !$0.caption.isEmpty }
+                    .map { ($0.fileName, $0.caption) }
+            )
+            let voiceMemoDurations = Dictionary(
+                uniqueKeysWithValues: item.voiceMemos.map { ($0.fileName, $0.duration) }
+            )
+
+            return MomentoArchiveItem(
+                id: item.id,
+                title: item.title,
+                description: item.itemDescription,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+                tags: item.tags,
+                collectionName: item.collectionName,
+                purchaseDate: item.purchaseDate,
+                purchasePrice: item.purchasePrice,
+                estimatedValue: item.estimatedValue,
+                serialNumber: item.serialNumber,
+                provenanceNotes: item.provenanceNotes,
+                assets: assets,
+                photoCaptions: photoCaptions,
+                voiceMemoDurations: voiceMemoDurations,
+                textMemories: item.textMemories
+                    .sorted { $0.createdAt < $1.createdAt }
+                    .map(\.body)
+            )
+        }
+
+        return MomentoDataArchive(
+            schemaVersion: 1,
+            generatedAt: .now,
+            appName: "Momento",
+            itemCount: archiveItems.count,
+            items: archiveItems
+        )
     }
 
     // MARK: - Single-Item PDF
@@ -241,6 +353,31 @@ nonisolated final class ExportService: Sendable {
             y += drawHeight + AppConstants.Export.sectionSpacing
         }
 
+        // Photo thumbnails
+        let photoImages = item.photoAttachments
+            .prefix(3)
+            .compactMap { photo -> UIImage? in
+                guard let url = try? FileStorageService.shared.resolveURL(for: photo.fileName) else { return nil }
+                return UIImage(contentsOfFile: url.path(percentEncoded: false))
+            }
+
+        if !photoImages.isEmpty, y < pageRect.height - margin - 130 {
+            let labelAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: AppConstants.Export.bodyFontSize, weight: .semibold),
+                .foregroundColor: UIColor.label,
+            ]
+            "Photo Attachments:".draw(at: CGPoint(x: margin, y: y), withAttributes: labelAttrs)
+            y += 18
+
+            let spacing: CGFloat = 8
+            let imageSide = min((contentWidth - spacing * 2) / 3, 96)
+            for (index, image) in photoImages.enumerated() {
+                let x = margin + CGFloat(index) * (imageSide + spacing)
+                image.draw(in: CGRect(x: x, y: y, width: imageSide, height: imageSide))
+            }
+            y += imageSide + AppConstants.Export.sectionSpacing
+        }
+
         y += AppConstants.Export.lineSpacing
 
         // Metadata table
@@ -260,6 +397,7 @@ nonisolated final class ExportService: Sendable {
             ("Purchase Date", item.purchaseDate?.formatted(date: .long, time: .omitted) ?? "—"),
             ("Serial Number", item.serialNumber ?? "—"),
             ("Tags", item.tags.isEmpty ? "—" : item.tags.joined(separator: ", ")),
+            ("Model File", item.modelFileName ?? "—"),
         ]
 
         for (label, value) in metadataRows {
@@ -337,5 +475,60 @@ nonisolated final class ExportService: Sendable {
             return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
         }
         return value
+    }
+
+    private func archiveAssetURLs(from manifest: MomentoDataArchive) -> [URL] {
+        var seen = Set<String>()
+        var urls: [URL] = []
+
+        for item in manifest.items {
+            for asset in item.assets where seen.insert(asset.relativePath).inserted {
+                guard let url = try? FileStorageService.shared.resolveURL(for: asset.relativePath),
+                      FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+                    continue
+                }
+                urls.append(url)
+            }
+        }
+
+        return urls
+    }
+
+    private func archiveAssets(for item: CollectionItem) -> [MomentoArchiveAsset] {
+        var assets: [(kind: String, path: String)] = []
+
+        if let modelFileName = item.modelFileName {
+            assets.append(("model", modelFileName))
+        }
+        if let thumbnailFileName = item.thumbnailFileName {
+            assets.append(("thumbnail", thumbnailFileName))
+        }
+        for photo in item.photoAttachments {
+            assets.append(("photo", photo.fileName))
+        }
+        for memo in item.voiceMemos {
+            assets.append(("voiceMemo", memo.fileName))
+        }
+
+        return assets.map { kind, path in
+            let details = fileDetails(relativePath: path)
+            return MomentoArchiveAsset(
+                kind: kind,
+                relativePath: path,
+                byteCount: details.byteCount,
+                sha256: details.sha256
+            )
+        }
+    }
+
+    private func fileDetails(relativePath: String) -> (byteCount: Int64?, sha256: String?) {
+        guard let url = try? FileStorageService.shared.resolveURL(for: relativePath),
+              let data = try? Data(contentsOf: url) else {
+            return (nil, nil)
+        }
+
+        let digest = SHA256.hash(data: data)
+        let hash = digest.map { String(format: "%02x", $0) }.joined()
+        return (Int64(data.count), hash)
     }
 }

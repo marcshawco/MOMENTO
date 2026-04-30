@@ -9,17 +9,20 @@ struct SettingsView: View {
     @AppStorage(AppConstants.UserDefaultsKeys.cloudSuggestionEndpoint) private var cloudSuggestionEndpoint = ""
     @Query private var items: [CollectionItem]
 
+    @State private var authService = AuthenticationService()
     @State private var isExporting = false
     @State private var exportMessage = ""
-    @State private var shareURL: URL?
+    @State private var shareURLs: [URL] = []
     @State private var showingShareSheet = false
     @State private var exportError: String?
+    @State private var cleanupMessage: String?
+    @State private var securityMessage: String?
 
     var body: some View {
         NavigationStack {
             List {
                 Section("Security") {
-                    Toggle(isOn: $isFaceIDEnabled) {
+                    Toggle(isOn: faceIDBinding) {
                         Label("Require Face ID", systemImage: "faceid")
                     }
                 }
@@ -66,6 +69,13 @@ struct SettingsView: View {
                     }
                     .disabled(items.isEmpty || isExporting)
 
+                    Button {
+                        exportDataArchive()
+                    } label: {
+                        Label("Export Data + Assets", systemImage: "archivebox")
+                    }
+                    .disabled(items.isEmpty || isExporting)
+
                     if items.isEmpty {
                         Text("Add items to enable export")
                             .font(.caption)
@@ -83,6 +93,18 @@ struct SettingsView: View {
 
                     LabeledContent("Items") {
                         Text("\(items.count)")
+                    }
+
+                    Button {
+                        cleanupTemporaryFiles()
+                    } label: {
+                        Label("Remove Temporary Files", systemImage: "trash")
+                    }
+
+                    Button {
+                        cleanupUnreferencedFiles()
+                    } label: {
+                        Label("Clean Unreferenced Assets", systemImage: "externaldrive.badge.xmark")
                     }
                 }
 
@@ -104,8 +126,8 @@ struct SettingsView: View {
                 }
             }
             .sheet(isPresented: $showingShareSheet) {
-                if let shareURL {
-                    ShareSheetView(activityItems: [shareURL])
+                if !shareURLs.isEmpty {
+                    ShareSheetView(activityItems: shareURLs)
                 }
             }
             .alert("Export Error", isPresented: .constant(exportError != nil)) {
@@ -113,6 +135,20 @@ struct SettingsView: View {
             } message: {
                 if let exportError {
                     Text(exportError)
+                }
+            }
+            .alert("Storage Cleanup", isPresented: .constant(cleanupMessage != nil)) {
+                Button("OK") { cleanupMessage = nil }
+            } message: {
+                if let cleanupMessage {
+                    Text(cleanupMessage)
+                }
+            }
+            .alert("Security", isPresented: .constant(securityMessage != nil)) {
+                Button("OK") { securityMessage = nil }
+            } message: {
+                if let securityMessage {
+                    Text(securityMessage)
                 }
             }
         }
@@ -127,7 +163,7 @@ struct SettingsView: View {
         Task {
             do {
                 let url = try ExportService.shared.generatePDFReport(items: Array(items))
-                shareURL = url
+                shareURLs = [url]
                 isExporting = false
                 showingShareSheet = true
             } catch {
@@ -144,7 +180,7 @@ struct SettingsView: View {
         Task {
             do {
                 let url = try ExportService.shared.generateCSV(items: Array(items))
-                shareURL = url
+                shareURLs = [url]
                 isExporting = false
                 showingShareSheet = true
             } catch {
@@ -154,7 +190,93 @@ struct SettingsView: View {
         }
     }
 
+    private func exportDataArchive() {
+        isExporting = true
+        exportMessage = "Preparing JSON manifest and assets..."
+
+        Task {
+            do {
+                let urls = try ExportService.shared.generateDataArchive(items: Array(items))
+                shareURLs = urls
+                isExporting = false
+                showingShareSheet = true
+            } catch {
+                isExporting = false
+                exportError = error.localizedDescription
+            }
+        }
+    }
+
+    private func cleanupTemporaryFiles() {
+        ExportService.shared.cleanupExportFiles()
+        let summary = FileStorageService.shared.cleanupAllCaptureTemp()
+        cleanupMessage = formattedCleanupMessage(summary: summary, fallback: "Temporary export files were removed.")
+    }
+
+    private func cleanupUnreferencedFiles() {
+        let summary = FileStorageService.shared.cleanupUnreferencedFiles(
+            referencedFileNames: referencedFileNames
+        )
+        cleanupMessage = formattedCleanupMessage(summary: summary, fallback: "No unreferenced asset files were found.")
+    }
+
     // MARK: - Helpers
+
+    private var faceIDBinding: Binding<Bool> {
+        Binding(
+            get: { isFaceIDEnabled },
+            set: { newValue in
+                handleFaceIDToggle(newValue)
+            }
+        )
+    }
+
+    private func handleFaceIDToggle(_ newValue: Bool) {
+        guard newValue else {
+            isFaceIDEnabled = false
+            return
+        }
+
+        guard authService.isBiometricAvailable else {
+            isFaceIDEnabled = false
+            securityMessage = "Face ID is not available on this device or has not been configured."
+            return
+        }
+
+        Task {
+            await authService.authenticate()
+            if authService.isUnlocked {
+                isFaceIDEnabled = true
+            } else {
+                isFaceIDEnabled = false
+                securityMessage = authService.authError ?? "Momento could not verify your identity."
+            }
+        }
+    }
+
+    private var referencedFileNames: Set<String> {
+        var fileNames = Set<String>()
+        for item in items {
+            if let modelFileName = item.modelFileName {
+                fileNames.insert(modelFileName)
+            }
+            if let thumbnailFileName = item.thumbnailFileName {
+                fileNames.insert(thumbnailFileName)
+            }
+            item.photoAttachments.forEach { fileNames.insert($0.fileName) }
+            item.voiceMemos.forEach { fileNames.insert($0.fileName) }
+        }
+        return fileNames
+    }
+
+    private func formattedCleanupMessage(summary: StorageCleanupSummary, fallback: String) -> String {
+        guard summary.deletedFiles > 0 else { return fallback }
+        return String(
+            format: "Removed %d files and reclaimed %.1f MB.",
+            summary.deletedFiles,
+            summary.reclaimedMegabytes
+        )
+    }
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
