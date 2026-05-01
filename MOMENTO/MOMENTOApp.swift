@@ -22,7 +22,8 @@ struct MOMENTOApp: App {
         ])
 
         do {
-            let modelContainer = try ModelContainer(for: schema)
+            let configuration = ModelConfiguration(schema: schema)
+            let modelContainer = try ModelContainer(for: schema, configurations: [configuration])
             startupResult = .ready(modelContainer)
             Self.normalizeTagsIfNeeded(modelContainer: modelContainer, defaultsKey: tagsNormalizationDefaultsKey)
         } catch {

@@ -48,6 +48,15 @@ struct CaptureGuidanceSnapshot: Equatable {
 enum CaptureGuidanceEngine {
 
     static func guidance(for snapshot: CaptureGuidanceSnapshot) -> CaptureGuidance {
+        if snapshot.flowState == .unsupported {
+            return CaptureGuidance(
+                title: "Unsupported device",
+                detail: "Object Capture needs a compatible iPhone or iPad with the required capture hardware.",
+                severity: .critical,
+                systemImage: "iphone.slash"
+            )
+        }
+
         if snapshot.userCompletedScanPass {
             return CaptureGuidance(
                 title: "Ready to finish",

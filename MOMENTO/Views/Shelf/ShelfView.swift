@@ -309,6 +309,10 @@ enum SortOrder: String, CaseIterable, Identifiable {
 }
 
 #Preview {
-    ShelfView()
-        .modelContainer(SampleData.previewContainer)
+    if let previewContainer = SampleData.previewContainer {
+        ShelfView()
+            .modelContainer(previewContainer)
+    } else {
+        ContentUnavailableView("Preview Unavailable", systemImage: "tray")
+    }
 }

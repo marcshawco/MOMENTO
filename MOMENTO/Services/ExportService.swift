@@ -51,7 +51,7 @@ nonisolated final class ExportService: Sendable {
 
     // MARK: - Errors
 
-    enum ExportError: Error, LocalizedError {
+    enum ExportError: Error, LocalizedError, Equatable {
         case pdfGenerationFailed
         case csvGenerationFailed
         case archiveGenerationFailed

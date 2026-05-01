@@ -31,6 +31,18 @@ final class ExportServiceTests: XCTestCase {
         XCTAssertTrue(csv.contains("Thumbnails/example.png"))
     }
 
+    func testExportsRejectEmptyItemSets() {
+        XCTAssertThrowsError(try ExportService.shared.generatePDFReport(items: [])) { error in
+            XCTAssertEqual(error as? ExportService.ExportError, .noItems)
+        }
+        XCTAssertThrowsError(try ExportService.shared.generateCSV(items: [])) { error in
+            XCTAssertEqual(error as? ExportService.ExportError, .noItems)
+        }
+        XCTAssertThrowsError(try ExportService.shared.generateDataArchive(items: [])) { error in
+            XCTAssertEqual(error as? ExportService.ExportError, .noItems)
+        }
+    }
+
     func testDataArchiveManifestIncludesAssetsWithChecksums() throws {
         FileStorageService.shared.createDirectoryStructure()
         let id = UUID()

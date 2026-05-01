@@ -5,7 +5,7 @@ import SwiftData
 enum SampleData {
 
     /// In-memory ModelContainer for SwiftUI previews. Prepopulated with sample items.
-    static var previewContainer: ModelContainer {
+    static var previewContainer: ModelContainer? {
         let schema = Schema([
             CollectionItem.self,
             PhotoAttachment.self,
@@ -25,7 +25,8 @@ enum SampleData {
 
             return container
         } catch {
-            fatalError("Failed to create preview container: \(error)")
+            assertionFailure("Failed to create preview container: \(error)")
+            return nil
         }
     }
 

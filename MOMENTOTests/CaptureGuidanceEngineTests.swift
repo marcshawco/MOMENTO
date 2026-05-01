@@ -85,6 +85,30 @@ final class CaptureGuidanceEngineTests: XCTestCase {
         XCTAssertTrue(report.issues.contains(.tooSoft))
     }
 
+    func testCaptureSetQualityFlagsLowUsableRatio() {
+        let report = CaptureSetQualityService.evaluate(
+            metrics: CaptureSetQualityMetrics(
+                totalImages: 60,
+                analyzedImages: 60,
+                usableImages: 24,
+                averageBrightness: 0.45,
+                averageSharpness: 0.04
+            )
+        )
+
+        XCTAssertFalse(report.isReconstructionReady)
+        XCTAssertTrue(report.issues.contains(.tooFewUsableImages))
+    }
+
+    func testUnsupportedCaptureStateReturnsUnsupportedGuidance() {
+        let guidance = CaptureGuidanceEngine.guidance(
+            for: snapshot(flowState: .unsupported)
+        )
+
+        XCTAssertEqual(guidance.severity, .critical)
+        XCTAssertEqual(guidance.title, "Unsupported device")
+    }
+
     private func snapshot(
         flowState: CaptureGuidanceFlowState = .capturing,
         trackingIsNormal: Bool = true,

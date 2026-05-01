@@ -172,8 +172,12 @@ struct ItemDetailView: View {
 }
 
 #Preview {
-    NavigationStack {
-        ItemDetailView(itemId: SampleData.sampleItem.id)
+    if let previewContainer = SampleData.previewContainer {
+        NavigationStack {
+            ItemDetailView(itemId: SampleData.sampleItem.id)
+        }
+        .modelContainer(previewContainer)
+    } else {
+        ContentUnavailableView("Preview Unavailable", systemImage: "tray")
     }
-    .modelContainer(SampleData.previewContainer)
 }

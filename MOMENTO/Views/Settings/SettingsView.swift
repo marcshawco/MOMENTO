@@ -376,6 +376,10 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView()
-        .modelContainer(SampleData.previewContainer)
+    if let previewContainer = SampleData.previewContainer {
+        SettingsView()
+            .modelContainer(previewContainer)
+    } else {
+        ContentUnavailableView("Preview Unavailable", systemImage: "tray")
+    }
 }

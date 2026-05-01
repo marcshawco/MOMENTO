@@ -1,6 +1,11 @@
 import Foundation
 
 nonisolated enum AppConstants {
+    // MARK: - Persistence
+    enum Persistence {
+        static let schemaVersion = "1.0.0"
+    }
+
     // MARK: - File Storage Directories
     enum Storage {
         static let rootFolder = "Momento"
