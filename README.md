@@ -77,6 +77,12 @@ Run the full local release smoke test:
 ./scripts/release_smoke_test.sh
 ```
 
+The smoke script auto-selects an available iPhone simulator. Override it when needed:
+
+```sh
+TEST_DESTINATION='platform=iOS Simulator,name=iPhone 17 Pro' ./scripts/release_smoke_test.sh
+```
+
 Run the full release preflight:
 
 ```sh

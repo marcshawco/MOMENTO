@@ -1,0 +1,47 @@
+name: iOS Preflight
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  preflight:
+    name: Build, Test, Archive
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode Version
+        run: xcodebuild -version
+
+      - name: Validate App Store Metadata
+        run: ./scripts/validate_app_store_metadata.sh
+
+      - name: Resolve Test Destination
+        id: destination
+        run: |
+          destination="$(./scripts/resolve_test_destination.sh)"
+          echo "destination=${destination}" >> "$GITHUB_OUTPUT"
+          echo "Using destination: ${destination}"
+
+      - name: Release Smoke Test
+        env:
+          TEST_DESTINATION: ${{ steps.destination.outputs.destination }}
+        run: ./scripts/release_smoke_test.sh
+
+      - name: Verify Archive Metadata
+        run: ./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive
+
+      - name: Upload Smoke Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-smoke-logs
+          path: build/release-smoke
+          if-no-files-found: ignore
