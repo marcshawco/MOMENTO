@@ -31,6 +31,7 @@ The simulator can build, run, and test the non-capture paths. Object Capture its
 - `MOMENTO/Views`: SwiftUI screens for onboarding, shelf, capture, item detail, settings, and shared components
 - `MOMENTOTests`: unit tests for critical privacy, storage, export, and capture guidance logic
 - `RELEASE_CHECKLIST.md`: release gates for automated checks, physical-device QA, privacy/security review, and App Store Connect
+- `APP_STORE_METADATA_DRAFT.md`: App Store listing copy, review notes, permission explanations, and privacy-answer draft
 
 ## Build And Test
 
