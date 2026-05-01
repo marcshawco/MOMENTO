@@ -79,6 +79,18 @@ To inspect a result bundle after a failing test/build:
 ./scripts/inspect_xcresult.sh build/release-smoke/xcresults/tests.xcresult
 ```
 
+To inspect archive metadata before upload:
+
+```sh
+./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive
+```
+
+For a distribution-signed archive/export, require App Store signing checks:
+
+```sh
+EXPECT_DISTRIBUTION=1 ./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive
+```
+
 ## Device Diagnostics
 
 Run:

@@ -58,6 +58,12 @@ Create a local archive:
 xcodebuild archive -project MOMENTO.xcodeproj -scheme MOMENTO -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/MomentoRelease.xcarchive
 ```
 
+Inspect archive metadata before distribution:
+
+```sh
+./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive
+```
+
 Run the full local release smoke test:
 
 ```sh
@@ -74,6 +80,12 @@ Export an archive for App Store/TestFlight distribution after you have distribut
 
 ```sh
 ./scripts/export_appstore_archive.sh /tmp/MomentoRelease.xcarchive /tmp/MomentoAppStoreExport
+```
+
+For a distribution-signed export, verify stricter signing requirements:
+
+```sh
+EXPECT_DISTRIBUTION=1 ./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive
 ```
 
 ## Run On A Physical iPhone
