@@ -65,6 +65,12 @@ Inspect archive/app/export metadata before distribution:
 ./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive
 ```
 
+Validate App Store Connect metadata draft lengths:
+
+```sh
+./scripts/validate_app_store_metadata.sh
+```
+
 Run the full local release smoke test:
 
 ```sh

@@ -39,7 +39,7 @@ Object Capture requires a supported device, good lighting, and steady movement a
 
 ## Keywords
 
-collectibles, archive, 3D scan, photogrammetry, scrapbook, inventory, insurance, AR, USDZ, collection
+collectibles, archive, 3D scan, photogrammetry, scrapbook, inventory, insurance, AR, USDZ
 
 ## What's New
 
@@ -126,6 +126,7 @@ Optional user-configured cloud suggestion endpoint:
 
 - Run `./scripts/release_smoke_test.sh`.
 - Run `./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive`.
+- Run `./scripts/validate_app_store_metadata.sh`.
 - Export with App Store distribution signing.
 - Run `EXPECT_DISTRIBUTION=1 ./scripts/verify_archive_metadata.sh /tmp/MomentoAppStoreExport`.
 - Confirm the physical-device Object Capture flow on a supported iPhone.

@@ -18,6 +18,8 @@ Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving
   `./scripts/inspect_xcresult.sh build/release-smoke/xcresults/tests.xcresult`
 - Inspect archive/app/export Info.plist, privacy manifest, platform, and signing:
   `./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive`
+- Validate App Store Connect metadata draft lengths:
+  `./scripts/validate_app_store_metadata.sh`
 - Capture physical device/Xcode diagnostics:
   `./scripts/device_diagnostics.sh`
 - Export an existing archive for App Store Connect/TestFlight:
@@ -59,6 +61,8 @@ Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving
 - For distribution-signed artifacts, run:
   `EXPECT_DISTRIBUTION=1 ./scripts/verify_archive_metadata.sh /tmp/MomentoAppStoreExport`
 - Complete privacy nutrition labels consistently with `PrivacyInfo.xcprivacy`.
+- Validate listing copy before pasting into App Store Connect:
+  `./scripts/validate_app_store_metadata.sh`
 - Answer export compliance as no non-exempt encryption.
 - Add screenshots for onboarding, shelf, item detail, 3D preview, and export.
 - Verify TestFlight build on at least one physical LiDAR device before external testing.

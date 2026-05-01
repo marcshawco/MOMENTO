@@ -85,6 +85,12 @@ To inspect archive/app/export metadata before upload:
 ./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive
 ```
 
+To validate App Store metadata draft lengths:
+
+```sh
+./scripts/validate_app_store_metadata.sh
+```
+
 For a distribution-signed archive/export, require App Store signing checks:
 
 ```sh
