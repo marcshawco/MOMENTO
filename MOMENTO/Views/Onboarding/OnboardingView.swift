@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Four-page onboarding flow shown on first launch.
+/// Five-page onboarding flow shown on first launch.
 /// Sets `hasSeenOnboarding` in UserDefaults on completion.
 struct OnboardingView: View {
 
@@ -14,7 +14,7 @@ struct OnboardingView: View {
     @State private var isRequestingPermissions = false
     @State private var securityMessage: String?
 
-    private let pageCount = 4
+    private let pageCount = 5
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,7 +24,19 @@ struct OnboardingView: View {
                     systemImage: "lock.shield.fill",
                     imageColor: .blue,
                     title: "Welcome to Momento",
-                    subtitle: "Your collectible archive is private by default. Models, photos, and voice notes stay on-device unless you explicitly export."
+                    subtitle: "Create private 3D digital twins of physical collectibles and keep their stories in one scrapbook-like archive.",
+                    highlights: [
+                        OnboardingHighlight(
+                            icon: "cube.transparent",
+                            title: "3D digital twins",
+                            detail: "Guided Object Capture creates USDZ models on supported devices."
+                        ),
+                        OnboardingHighlight(
+                            icon: "lock",
+                            title: "Local-first by default",
+                            detail: "Your models, photos, notes, and voice memos stay on this device."
+                        )
+                    ]
                 )
                 .tag(0)
 
@@ -33,17 +45,60 @@ struct OnboardingView: View {
                     systemImage: "camera.viewfinder",
                     imageColor: .orange,
                     title: "Scan Better Models",
-                    subtitle: "Place the object on a stable surface, use even lighting, and move slowly around it. Avoid bright backlight and handheld scanning."
+                    subtitle: "Good capture habits make sharper reconstructions and fewer failed scans.",
+                    highlights: [
+                        OnboardingHighlight(
+                            icon: "lightbulb.max",
+                            title: "Use soft, even light",
+                            detail: "Avoid harsh shadows, glare, and bright backlight."
+                        ),
+                        OnboardingHighlight(
+                            icon: "arrow.triangle.2.circlepath.camera",
+                            title: "Move slowly around the object",
+                            detail: "Keep the collectible stable and capture every side."
+                        ),
+                        OnboardingHighlight(
+                            icon: "exclamationmark.triangle",
+                            title: "Weak scans are caught early",
+                            detail: "Momento checks image quality before reconstruction starts."
+                        )
+                    ]
                 )
                 .tag(1)
 
-                // Page 3: Permissions
-                permissionsPage
-                    .tag(2)
+                // Page 3: Scrapbook archive
+                OnboardingPageView(
+                    systemImage: "books.vertical.fill",
+                    imageColor: .purple,
+                    title: "Build the Story",
+                    subtitle: "Each item can hold the details collectors care about after the scan.",
+                    highlights: [
+                        OnboardingHighlight(
+                            icon: "photo.on.rectangle",
+                            title: "Photos and thumbnails",
+                            detail: "Attach supporting photos while avoiding location metadata."
+                        ),
+                        OnboardingHighlight(
+                            icon: "waveform",
+                            title: "Voice memos and notes",
+                            detail: "Record memories, provenance, condition notes, and context."
+                        ),
+                        OnboardingHighlight(
+                            icon: "doc.richtext",
+                            title: "Insurance-ready exports",
+                            detail: "Generate PDF, CSV, and data archive exports when you choose."
+                        )
+                    ]
+                )
+                .tag(2)
 
-                // Page 4: Security
-                securityPage
+                // Page 4: Permissions
+                permissionsPage
                     .tag(3)
+
+                // Page 5: Security
+                securityPage
+                    .tag(4)
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .always))
