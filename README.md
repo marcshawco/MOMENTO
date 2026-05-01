@@ -58,6 +58,29 @@ Create a local archive:
 xcodebuild archive -project MOMENTO.xcodeproj -scheme MOMENTO -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/MomentoRelease.xcarchive
 ```
 
+## Run On A Physical iPhone
+
+Use Product > Run in Xcode, not Product > Build. A successful build by itself only produces build artifacts; it does not install or launch the app unless a runnable device destination is selected.
+
+Before running on device:
+
+- Connect the iPhone by USB for the first run.
+- Unlock the iPhone and keep it on the Home Screen.
+- Accept any "Trust This Computer" prompt on the iPhone.
+- Confirm Developer Mode is enabled on the iPhone.
+- In Xcode, select the physical iPhone as the active run destination.
+- Wait for Xcode's Devices and Simulators window to finish preparing the device.
+
+Useful diagnostics:
+
+```sh
+xcodebuild -project MOMENTO.xcodeproj -scheme MOMENTO -showdestinations
+xcrun devicectl list devices
+xcrun xctrace list devices
+```
+
+If the phone appears as unavailable or offline, Xcode can build for "Any iOS Device" but cannot install Momento. In that state, unplug and reconnect by USB, unlock the phone, reopen Xcode's Devices and Simulators window, and wait until the iPhone appears as an available destination before using Product > Run.
+
 ## Privacy Model
 
 Momento is private by default:
