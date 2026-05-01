@@ -64,6 +64,12 @@ Run the full local release smoke test:
 ./scripts/release_smoke_test.sh
 ```
 
+Inspect a smoke-test result bundle after a failure:
+
+```sh
+./scripts/inspect_xcresult.sh build/release-smoke/xcresults/tests.xcresult
+```
+
 Export an archive for App Store/TestFlight distribution after you have distribution signing available:
 
 ```sh

@@ -71,6 +71,13 @@ Run:
 ```
 
 The script writes logs to `build/release-smoke/` and creates a local archive at `/tmp/MomentoRelease.xcarchive`.
+It also writes `.xcresult` bundles to `build/release-smoke/xcresults/`.
+
+To inspect a result bundle after a failing test/build:
+
+```sh
+./scripts/inspect_xcresult.sh build/release-smoke/xcresults/tests.xcresult
+```
 
 ## Device Diagnostics
 

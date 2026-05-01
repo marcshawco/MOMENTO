@@ -14,6 +14,8 @@ Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving
   `xcodebuild archive -project MOMENTO.xcodeproj -scheme MOMENTO -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/MomentoRelease.xcarchive`
 - Or run the full local smoke pass:
   `./scripts/release_smoke_test.sh`
+- Inspect a failed test/build result bundle:
+  `./scripts/inspect_xcresult.sh build/release-smoke/xcresults/tests.xcresult`
 - Capture physical device/Xcode diagnostics:
   `./scripts/device_diagnostics.sh`
 - Export an existing archive for App Store Connect/TestFlight:

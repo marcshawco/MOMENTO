@@ -3,9 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="${ROOT_DIR}/build/release-smoke"
+RESULT_DIR="${LOG_DIR}/xcresults"
 ARCHIVE_PATH="/tmp/MomentoRelease.xcarchive"
 
 mkdir -p "$LOG_DIR"
+rm -rf "$RESULT_DIR"
+mkdir -p "$RESULT_DIR"
 cd "$ROOT_DIR"
 rm -rf "$ARCHIVE_PATH"
 
@@ -26,13 +29,15 @@ run_and_log tests \
   xcodebuild test \
     -project MOMENTO.xcodeproj \
     -scheme MOMENTO \
-    -destination "platform=iOS Simulator,name=iPhone 17 Pro"
+    -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+    -resultBundlePath "${RESULT_DIR}/tests.xcresult"
 
 run_and_log generic-debug-build \
   xcodebuild \
     -project MOMENTO.xcodeproj \
     -scheme MOMENTO \
     -destination "generic/platform=iOS" \
+    -resultBundlePath "${RESULT_DIR}/generic-debug-build.xcresult" \
     build
 
 run_and_log generic-release-build \
@@ -41,6 +46,7 @@ run_and_log generic-release-build \
     -scheme MOMENTO \
     -configuration Release \
     -destination "generic/platform=iOS" \
+    -resultBundlePath "${RESULT_DIR}/generic-release-build.xcresult" \
     build
 
 run_and_log archive \
@@ -53,4 +59,5 @@ run_and_log archive \
 
 echo "Release smoke test completed."
 echo "Logs: ${LOG_DIR}"
+echo "Result bundles: ${RESULT_DIR}"
 echo "Archive: ${ARCHIVE_PATH}"
