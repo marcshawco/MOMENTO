@@ -1,18 +1,68 @@
 #!/bin/zsh
 set -euo pipefail
 
-ARCHIVE_PATH="${1:-/tmp/MomentoRelease.xcarchive}"
+INPUT_PATH="${1:-/tmp/MomentoRelease.xcarchive}"
 EXPECT_DISTRIBUTION="${EXPECT_DISTRIBUTION:-0}"
+TEMP_DIR=""
 
-if [[ ! -d "$ARCHIVE_PATH" ]]; then
-  echo "Archive not found: ${ARCHIVE_PATH}"
+cleanup() {
+  if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
+    rm -rf "$TEMP_DIR"
+  fi
+
+  if [[ -n "${ENTITLEMENTS_PLIST:-}" && -f "$ENTITLEMENTS_PLIST" ]]; then
+    rm -f "$ENTITLEMENTS_PLIST"
+  fi
+}
+
+trap cleanup EXIT
+
+app_path_for_input() {
+  local input="$1"
+
+  if [[ -d "$input" && "$input" == *.xcarchive ]]; then
+    find "${input}/Products/Applications" -maxdepth 1 -type d -name "*.app" | head -n 1
+    return
+  fi
+
+  if [[ -d "$input" && "$input" == *.app ]]; then
+    echo "$input"
+    return
+  fi
+
+  if [[ -f "$input" && "$input" == *.ipa ]]; then
+    TEMP_DIR="$(mktemp -d)"
+    /usr/bin/unzip -q "$input" -d "$TEMP_DIR"
+    find "${TEMP_DIR}/Payload" -maxdepth 1 -type d -name "*.app" | head -n 1
+    return
+  fi
+
+  if [[ -d "$input" ]]; then
+    local ipa_path
+    ipa_path="$(find "$input" -maxdepth 1 -type f -name "*.ipa" | head -n 1)"
+    if [[ -n "$ipa_path" ]]; then
+      TEMP_DIR="$(mktemp -d)"
+      /usr/bin/unzip -q "$ipa_path" -d "$TEMP_DIR"
+      find "${TEMP_DIR}/Payload" -maxdepth 1 -type d -name "*.app" | head -n 1
+      return
+    fi
+
+    find "$input" -maxdepth 2 -type d -name "*.app" | head -n 1
+    return
+  fi
+
+  echo ""
+}
+
+if [[ ! -e "$INPUT_PATH" ]]; then
+  echo "Input not found: ${INPUT_PATH}"
   exit 66
 fi
 
-APP_PATH="$(find "${ARCHIVE_PATH}/Products/Applications" -maxdepth 1 -type d -name "*.app" | head -n 1)"
+APP_PATH="$(app_path_for_input "$INPUT_PATH")"
 
 if [[ -z "$APP_PATH" || ! -d "$APP_PATH" ]]; then
-  echo "No .app found in archive: ${ARCHIVE_PATH}"
+  echo "No .app found in input: ${INPUT_PATH}"
   exit 65
 fi
 
@@ -32,8 +82,8 @@ print_value() {
   echo "${label}: ${value:-missing}"
 }
 
-echo "== archive =="
-echo "Archive: ${ARCHIVE_PATH}"
+echo "== artifact =="
+echo "Input: ${INPUT_PATH}"
 echo "App: ${APP_PATH}"
 
 echo ""
@@ -64,7 +114,6 @@ SIGNING_SUMMARY="$(/usr/bin/codesign -dv "$APP_PATH" 2>&1 || true)"
 echo "$SIGNING_SUMMARY" | grep -E "Authority=|TeamIdentifier=|Signature=|Runtime Version=" || true
 
 ENTITLEMENTS_PLIST="$(mktemp)"
-trap 'rm -f "$ENTITLEMENTS_PLIST"' EXIT
 
 if /usr/bin/codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_PLIST" 2>/dev/null; then
   GET_TASK_ALLOW="$(/usr/libexec/PlistBuddy -c "Print :get-task-allow" "$ENTITLEMENTS_PLIST" 2>/dev/null || echo "missing")"
@@ -76,7 +125,7 @@ else
 fi
 
 if [[ "$SUPPORTED_PLATFORMS" != *"iPhoneOS"* ]]; then
-  echo "ERROR: Archive does not advertise iPhoneOS support."
+  echo "ERROR: Artifact does not advertise iPhoneOS support."
   exit 1
 fi
 
@@ -93,4 +142,4 @@ if [[ "$EXPECT_DISTRIBUTION" == "1" ]]; then
 fi
 
 echo ""
-echo "Archive metadata verification complete."
+echo "Artifact metadata verification complete."
