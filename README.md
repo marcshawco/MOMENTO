@@ -77,6 +77,12 @@ Run the full local release smoke test:
 ./scripts/release_smoke_test.sh
 ```
 
+Run the full release preflight:
+
+```sh
+./scripts/preflight_release.sh
+```
+
 Inspect a smoke-test result bundle after a failure:
 
 ```sh

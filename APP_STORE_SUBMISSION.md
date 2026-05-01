@@ -73,6 +73,12 @@ Run:
 The script writes logs to `build/release-smoke/` and creates a local archive at `/tmp/MomentoRelease.xcarchive`.
 It also writes `.xcresult` bundles to `build/release-smoke/xcresults/`.
 
+For the full local preflight, including metadata validation and archive inspection, run:
+
+```sh
+./scripts/preflight_release.sh
+```
+
 To inspect a result bundle after a failing test/build:
 
 ```sh

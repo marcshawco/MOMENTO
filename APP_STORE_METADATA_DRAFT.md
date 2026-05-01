@@ -130,6 +130,7 @@ Capture simulator screenshots with:
 
 ## Pre-Submission Checks
 
+- Run `./scripts/preflight_release.sh`.
 - Run `./scripts/release_smoke_test.sh`.
 - Run `./scripts/verify_archive_metadata.sh /tmp/MomentoRelease.xcarchive`.
 - Run `./scripts/validate_app_store_metadata.sh`.
