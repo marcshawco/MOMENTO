@@ -58,6 +58,18 @@ Create a local archive:
 xcodebuild archive -project MOMENTO.xcodeproj -scheme MOMENTO -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/MomentoRelease.xcarchive
 ```
 
+Run the full local release smoke test:
+
+```sh
+./scripts/release_smoke_test.sh
+```
+
+Export an archive for App Store/TestFlight distribution after you have distribution signing available:
+
+```sh
+./scripts/export_appstore_archive.sh /tmp/MomentoRelease.xcarchive /tmp/MomentoAppStoreExport
+```
+
 ## Run On A Physical iPhone
 
 Use Product > Run in Xcode, not Product > Build. A successful build by itself only produces build artifacts; it does not install or launch the app unless a runnable device destination is selected.
@@ -77,6 +89,18 @@ Useful diagnostics:
 xcodebuild -project MOMENTO.xcodeproj -scheme MOMENTO -showdestinations
 xcrun devicectl list devices
 xcrun xctrace list devices
+```
+
+Or capture all diagnostics to logs:
+
+```sh
+./scripts/device_diagnostics.sh
+```
+
+To include detailed CoreDevice output for a known device identifier:
+
+```sh
+./scripts/device_diagnostics.sh 34103A8E-3AC2-528F-B2ED-C0960AE7F55A
 ```
 
 If the phone appears as unavailable or offline, Xcode can build for "Any iOS Device" but cannot install Momento. In that state, unplug and reconnect by USB, unlock the phone, reopen Xcode's Devices and Simulators window, and wait until the iPhone appears as an available destination before using Product > Run.

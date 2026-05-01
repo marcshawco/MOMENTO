@@ -71,3 +71,29 @@ Run:
 ```
 
 The script writes logs to `build/release-smoke/` and creates a local archive at `/tmp/MomentoRelease.xcarchive`.
+
+## Device Diagnostics
+
+Run:
+
+```sh
+./scripts/device_diagnostics.sh
+```
+
+To include details for a specific CoreDevice identifier:
+
+```sh
+./scripts/device_diagnostics.sh 34103A8E-3AC2-528F-B2ED-C0960AE7F55A
+```
+
+The script writes logs to `build/device-diagnostics/`.
+
+## App Store Export Helper
+
+After creating an archive and after distribution signing is available, run:
+
+```sh
+./scripts/export_appstore_archive.sh /tmp/MomentoRelease.xcarchive /tmp/MomentoAppStoreExport
+```
+
+The export helper uses `Config/AppStoreExportOptions.plist`. If Apple changes accepted export-option values in a future Xcode, update the `method` value there and rerun the script.
