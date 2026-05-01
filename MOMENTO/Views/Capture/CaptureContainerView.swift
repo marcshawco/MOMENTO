@@ -294,7 +294,7 @@ struct CaptureContainerView: View {
                 }
             }
 
-            if viewModel.userCompletedScanPass {
+            if viewModel.canFinishCapture {
                 Button {
                     viewModel.finishCapture()
                 } label: {
@@ -310,7 +310,7 @@ struct CaptureContainerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 28)
-        .animation(.spring(duration: 0.3), value: viewModel.userCompletedScanPass)
+        .animation(.spring(duration: 0.3), value: viewModel.canFinishCapture)
         .animation(.spring(duration: 0.3), value: viewModel.shouldShowStartScanButton)
     }
 

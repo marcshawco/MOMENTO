@@ -5,6 +5,7 @@ Momento is an iOS 18+ SwiftUI app for collectors who want private 3D digital twi
 ## Core Features
 
 - Guided 3D capture with `ObjectCaptureSession` and `ObjectCaptureView`
+- Photo Set Reconstruction from required front, back, left, right, top, and bottom photos plus optional detail shots
 - On-device USDZ reconstruction with `PhotogrammetrySession`
 - Local-first SwiftData metadata storage
 - File-backed storage for USDZ models, thumbnails, photos, and audio
@@ -172,6 +173,8 @@ Momento is private by default:
 Momento preserves detailed USDZ output and does not compress reconstructed model files. The app currently requests RealityKit photogrammetry detail as `.reduced` because that is the supported on-device Object Capture detail level for this iOS path. If Apple expands supported detail levels, update the capture request and verify on physical hardware before release.
 
 Apple's guided `ObjectCaptureSession` flow is optimized for a stationary object on a stable, textured surface while the camera moves around it. For small collectibles that are hard to place, Momento exposes a Handheld Scan fallback: keep the object centered, rotate it slowly, avoid covering important detail with fingers, and capture many sharp angles against a textured background. Pure "rotate it in your hand" capture support is uncertain in Apple's guided API; Momento's safe fallback is to collect manual images and send that image set through `PhotogrammetrySession`.
+
+Photo Set Reconstruction is the preferred fallback when guided capture stalls. The user supplies front, back, left, right, top, and bottom photos, then can add optional diagonal, edge, label, texture, and close-up shots. Six canonical views are enough to attempt reconstruction, but dense overlap still matters; local AI should be used for future quality scoring, background masking, and missing-angle prompts rather than promising perfect 3D from six unrelated photos.
 
 ## Release Status
 

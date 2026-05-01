@@ -9,7 +9,9 @@ struct ShelfView: View {
 
     @State private var searchText = ""
     @State private var showingSettings = false
-    @State private var showingAddItem = false
+    @State private var showingAddItemMode = false
+    @State private var showingGuidedScan = false
+    @State private var showingPhotoSet = false
     @State private var sortOrder: SortOrder = .recentFirst
     @State private var filterTag: String?
     @State private var filterCollection: String?
@@ -52,8 +54,21 @@ struct ShelfView: View {
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
-            .fullScreenCover(isPresented: $showingAddItem) {
+            .sheet(isPresented: $showingAddItemMode) {
+                AddItemModeView {
+                    showingAddItemMode = false
+                    showingGuidedScan = true
+                } startPhotoSet: {
+                    showingAddItemMode = false
+                    showingPhotoSet = true
+                }
+                .presentationDetents([.medium, .large])
+            }
+            .fullScreenCover(isPresented: $showingGuidedScan) {
                 CaptureContainerView()
+            }
+            .fullScreenCover(isPresented: $showingPhotoSet) {
+                PhotoSetReconstructionView()
             }
             .navigationDestination(for: CollectionItem.ID.self) { itemId in
                 ItemDetailView(itemId: itemId)
@@ -153,7 +168,7 @@ struct ShelfView: View {
 
     private var addButton: some View {
         Button {
-            showingAddItem = true
+            showingAddItemMode = true
         } label: {
             Image(systemName: "plus")
                 .font(.title2)

@@ -303,6 +303,10 @@ final class CaptureViewModel {
         "\(Int((estimatedCaptureProgress * 100).rounded()))%"
     }
 
+    var canFinishCapture: Bool {
+        userCompletedScanPass || (numberOfShotsTaken >= 80 && estimatedCaptureProgress >= 0.95)
+    }
+
     var shotStallDuration: TimeInterval {
         guard case .capturing = flowState else { return 0 }
         return max(0, guidanceNow.timeIntervalSince(lastShotAcceptedAt))
