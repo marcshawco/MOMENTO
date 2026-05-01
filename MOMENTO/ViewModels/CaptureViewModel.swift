@@ -104,6 +104,7 @@ final class CaptureViewModel {
     var createdItemId: UUID?
     var detectionStatusText: String = "Align object on a flat surface to begin."
     var showAreaModeFallback: Bool = false
+    var isHandheldModeActive: Bool = false
     var guidanceNow: Date = .now
     var debugEvents: [String] = []
 
@@ -219,6 +220,7 @@ final class CaptureViewModel {
             return
         }
         hasUserStartedScan = true
+        isHandheldModeActive = false
         pendingAutoStartCapture = true
         showAreaModeFallback = false
         let detectingStarted = session.startDetecting()
@@ -236,6 +238,7 @@ final class CaptureViewModel {
     func resetDetectionAndRetry() {
         guard let session else { return }
         _ = session.resetDetection()
+        isHandheldModeActive = false
         pendingAutoStartCapture = session.startDetecting()
         showAreaModeFallback = false
         detectionStatusText = "Resetting detection..."
@@ -246,23 +249,26 @@ final class CaptureViewModel {
     func startAreaModeCapture() {
         guard let session else { return }
         guard case .normal = cameraTracking else {
-            detectionStatusText = "Tracking is limited. Move slower and increase scene texture before area mode."
+            detectionStatusText = "Tracking is limited. Add light/texture, then try handheld scan again."
             return
         }
         hasUserStartedScan = true
+        isHandheldModeActive = true
         pendingAutoStartCapture = false
         showAreaModeFallback = false
-        detectionStatusText = "Area mode started. Move around the object and capture all sides."
-        appendDebugEvent("areaModeStartRequested")
+        detectionStatusText = "Handheld scan started. Keep the object centered and rotate it slowly."
+        appendDebugEvent("handheldModeStartRequested")
         session.startCapturing()
-        logger.info("User requested area mode capture")
+        logger.info("User requested handheld capture")
     }
 
     func requestSingleImageCapture() {
         guard let session else { return }
         guard canRequestImageCapture else { return }
         session.requestImageCapture()
-        detectionStatusText = "Captured shot. Continue moving around the object."
+        detectionStatusText = isHandheldModeActive
+            ? "Captured shot. Rotate the object slightly and capture the next angle."
+            : "Captured shot. Continue moving around the object."
     }
 
     var shouldShowStartScanButton: Bool {
@@ -368,10 +374,11 @@ final class CaptureViewModel {
     }
 
     var shouldShowAreaModeButton: Bool {
-        guard hasUserStartedScan, showAreaModeFallback else { return false }
         switch flowState {
-        case .ready, .detecting:
-            return true
+        case .ready:
+            return canStartScan && !hasUserStartedScan
+        case .detecting:
+            return hasUserStartedScan && showAreaModeFallback
         default:
             return false
         }
@@ -693,10 +700,16 @@ final class CaptureViewModel {
     private func handleReconstructionComplete(modelURL: URL, itemId: UUID) async {
         flowState = .generatingThumbnail
 
-        // Generate thumbnail from the USDZ
+        // Generate a stable preview thumbnail. Prefer a captured source photo so completing a
+        // reconstruction never has to immediately load the fresh USDZ into a 3D renderer.
         var thumbnailFileName: String?
         do {
-            let thumbData = try await ThumbnailService.shared.generateThumbnail(from: modelURL)
+            let thumbData: Data
+            if let imagesDirectoryURL {
+                thumbData = try await ThumbnailService.shared.generateCaptureThumbnail(from: imagesDirectoryURL)
+            } else {
+                thumbData = try await ThumbnailService.shared.generateThumbnail(from: modelURL)
+            }
             thumbnailFileName = try FileStorageService.shared.saveFile(
                 data: thumbData,
                 directory: AppConstants.Storage.thumbnailsFolder,
@@ -785,6 +798,7 @@ final class CaptureViewModel {
         canRequestImageCapture = false
         cameraTracking = .notAvailable
         hasUserStartedScan = false
+        isHandheldModeActive = false
         pendingAutoStartCapture = false
         showAreaModeFallback = false
         lastShotCount = 0

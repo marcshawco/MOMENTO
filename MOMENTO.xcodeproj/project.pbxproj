@@ -10,6 +10,7 @@
 		4F73F83CAD5544C952EEAEFD /* CaptureGuidanceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */; };
 		55E7203D66E64EE6A13CF15D /* SecurityHardeningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 695F1B08E15248A89D40D1BE /* SecurityHardeningTests.swift */; };
 		7F20D1F51186ADDE930ED86A /* StringArrayValueTransformerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */; };
+		8E29BB2C92914F3E98468A4A /* ThumbnailServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E29BB2B92914F3E98468A4A /* ThumbnailServiceTests.swift */; };
 		A59F931A9E5B4BE88AC4D93F /* PhotoImportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E1BB7C3E4641139E25AC03 /* PhotoImportServiceTests.swift */; };
 		D7E73A1C5F784EB69E887F2A /* ExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C702A79E760640919274A145 /* ExportServiceTests.swift */; };
 /* End PBXBuildFile section */
@@ -28,6 +29,7 @@
 		024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StringArrayValueTransformerTests.swift; path = MOMENTOTests/StringArrayValueTransformerTests.swift; sourceTree = "<group>"; };
 		5AE1B9F0A85D449246DDEE59 /* CaptureGuidanceEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CaptureGuidanceEngineTests.swift; path = MOMENTOTests/CaptureGuidanceEngineTests.swift; sourceTree = "<group>"; };
 		695F1B08E15248A89D40D1BE /* SecurityHardeningTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SecurityHardeningTests.swift; path = MOMENTOTests/SecurityHardeningTests.swift; sourceTree = "<group>"; };
+		8E29BB2B92914F3E98468A4A /* ThumbnailServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ThumbnailServiceTests.swift; path = MOMENTOTests/ThumbnailServiceTests.swift; sourceTree = "<group>"; };
 		90DFF88E2F4A7B42005F8971 /* MOMENTO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MOMENTO.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C702A79E760640919274A145 /* ExportServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExportServiceTests.swift; path = MOMENTOTests/ExportServiceTests.swift; sourceTree = "<group>"; };
 		CE6EDB0BDFE1BA0361CD0C05 /* MOMENTOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MOMENTOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -102,6 +104,7 @@
 				F3E1BB7C3E4641139E25AC03 /* PhotoImportServiceTests.swift */,
 				695F1B08E15248A89D40D1BE /* SecurityHardeningTests.swift */,
 				024A74486FF76A06173AA167 /* StringArrayValueTransformerTests.swift */,
+				8E29BB2B92914F3E98468A4A /* ThumbnailServiceTests.swift */,
 			);
 			name = MOMENTOTests;
 			sourceTree = "<group>";
@@ -209,6 +212,7 @@
 				A59F931A9E5B4BE88AC4D93F /* PhotoImportServiceTests.swift in Sources */,
 				55E7203D66E64EE6A13CF15D /* SecurityHardeningTests.swift in Sources */,
 				7F20D1F51186ADDE930ED86A /* StringArrayValueTransformerTests.swift in Sources */,
+				8E29BB2C92914F3E98468A4A /* ThumbnailServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,8 +1,9 @@
-import SceneKit
+import ImageIO
+import QuickLookThumbnailing
 import UIKit
 import os
 
-/// Generates thumbnail images from USDZ model files using SceneKit offscreen rendering.
+/// Generates lightweight thumbnails without loading freshly reconstructed USDZ files into SceneKit.
 nonisolated final class ThumbnailService: Sendable {
 
     static let shared = ThumbnailService()
@@ -12,70 +13,111 @@ nonisolated final class ThumbnailService: Sendable {
     private init() {}
 
     enum ThumbnailError: Error, LocalizedError {
-        case sceneLoadFailed
-        case renderFailed
+        case noRepresentativeImage
+        case imageDecodeFailed
+        case quickLookFailed(String)
         case compressionFailed
 
         var errorDescription: String? {
             switch self {
-            case .sceneLoadFailed: "Failed to load 3D model for thumbnail"
-            case .renderFailed: "Failed to render thumbnail"
+            case .noRepresentativeImage: "No captured image was available for a thumbnail"
+            case .imageDecodeFailed: "Failed to decode captured image for thumbnail"
+            case .quickLookFailed(let message): "Failed to generate model preview: \(message)"
             case .compressionFailed: "Failed to encode thumbnail image"
             }
         }
     }
 
-    /// Generates a PNG thumbnail from a USDZ file. Must hop to MainActor for SceneKit rendering.
-    func generateThumbnail(
-        from usdzURL: URL,
+    /// Generates a PNG thumbnail from a representative capture photo.
+    ///
+    /// This is intentionally the preferred completion-path thumbnail. Loading the just-produced
+    /// USDZ into a 3D renderer immediately after photogrammetry can trigger native rendering
+    /// crashes on device before Swift error handling can recover.
+    func generateCaptureThumbnail(
+        from imagesDirectory: URL,
         size: CGFloat = AppConstants.Limits.thumbnailMaxDimension
     ) async throws -> Data {
-        logger.info("Generating thumbnail from: \(usdzURL.lastPathComponent)")
+        logger.info("Generating capture thumbnail from: \(imagesDirectory.lastPathComponent)")
 
-        // SceneKit rendering must happen on MainActor
-        return try await MainActor.run {
-            let scene: SCNScene
-            do {
-                scene = try SCNScene(url: usdzURL)
-            } catch {
-                throw ThumbnailError.sceneLoadFailed
+        return try await Task.detached(priority: .utility) {
+            guard let imageURL = try Self.representativeImageURL(in: imagesDirectory) else {
+                throw ThumbnailError.noRepresentativeImage
             }
 
-            let renderSize = CGSize(width: size, height: size)
+            guard let source = CGImageSourceCreateWithURL(imageURL as CFURL, nil) else {
+                throw ThumbnailError.imageDecodeFailed
+            }
 
-            // Use SCNRenderer for offscreen rendering (no window hierarchy needed)
-            let renderer = SCNRenderer(device: MTLCreateSystemDefaultDevice(), options: nil)
-            renderer.scene = scene
-            renderer.autoenablesDefaultLighting = true
-            renderer.pointOfView = Self.createCamera(for: scene)
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceThumbnailMaxPixelSize: Int(size),
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceShouldCacheImmediately: false,
+            ]
 
-            let image = renderer.snapshot(atTime: 0, with: renderSize, antialiasingMode: .multisampling4X)
+            guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+                throw ThumbnailError.imageDecodeFailed
+            }
 
+            let image = UIImage(cgImage: cgImage)
             guard let pngData = image.pngData() else {
                 throw ThumbnailError.compressionFailed
             }
 
             return pngData
+        }.value
+    }
+
+    /// Generates a PNG thumbnail from a USDZ file using Quick Look Thumbnailing.
+    ///
+    /// This is a safer fallback than SceneKit offscreen rendering because Quick Look owns the USDZ
+    /// preview pipeline Apple uses across the system.
+    func generateThumbnail(
+        from usdzURL: URL,
+        size: CGFloat = AppConstants.Limits.thumbnailMaxDimension
+    ) async throws -> Data {
+        logger.info("Generating Quick Look thumbnail from: \(usdzURL.lastPathComponent)")
+
+        let scale = await MainActor.run { UIScreen.main.scale }
+        let request = QLThumbnailGenerator.Request(
+            fileAt: usdzURL,
+            size: CGSize(width: size, height: size),
+            scale: scale,
+            representationTypes: .thumbnail
+        )
+
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
+            QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { representation, error in
+                if let image = representation?.uiImage,
+                   let pngData = image.pngData() {
+                    continuation.resume(returning: pngData)
+                    return
+                }
+
+                if let error {
+                    continuation.resume(throwing: ThumbnailError.quickLookFailed(error.localizedDescription))
+                } else {
+                    continuation.resume(throwing: ThumbnailError.quickLookFailed("No thumbnail representation was returned"))
+                }
+            }
         }
     }
 
-    /// Creates a camera positioned to frame the scene's bounding box.
-    @MainActor
-    private static func createCamera(for scene: SCNScene) -> SCNNode {
-        let (center, radius) = scene.rootNode.boundingSphere
-        let cameraNode = SCNNode()
-        cameraNode.camera = SCNCamera()
-        cameraNode.camera?.automaticallyAdjustsZRange = true
-
-        // Position camera to see the full object
-        let distance = Float(radius) * 2.5
-        cameraNode.position = SCNVector3(
-            center.x + distance * 0.5,
-            center.y + distance * 0.4,
-            center.z + distance * 0.7
+    private static func representativeImageURL(in directory: URL) throws -> URL? {
+        let allowedExtensions = Set(["jpg", "jpeg", "heic", "heif", "png"])
+        let urls = try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
         )
-        cameraNode.look(at: center)
+        .filter { allowedExtensions.contains($0.pathExtension.lowercased()) }
+        .sorted { lhs, rhs in
+            let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            return lhsDate < rhsDate
+        }
 
-        return cameraNode
+        guard !urls.isEmpty else { return nil }
+        return urls[urls.count / 2]
     }
 }

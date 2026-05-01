@@ -206,7 +206,7 @@ struct CaptureContainerView: View {
                 Button {
                     viewModel.startAreaModeCapture()
                 } label: {
-                    Label("Start Area Scan", systemImage: "cube.transparent.fill")
+                    Label("Handheld Scan", systemImage: "rotate.3d")
                         .font(.headline)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 20)
@@ -214,6 +214,7 @@ struct CaptureContainerView: View {
                         .background(.orange.gradient, in: Capsule())
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+                .accessibilityHint("Use for small objects. Keep the object centered and rotate it slowly while capturing all sides.")
             }
 
             VStack(alignment: .leading, spacing: 10) {
