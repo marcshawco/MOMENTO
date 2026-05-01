@@ -32,6 +32,8 @@ Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving
 ## Required Real-Device QA
 
 - Install on an iOS 18+ LiDAR-capable iPhone or iPad.
+- Command-line install option:
+  `DEVICE_ID=00008140-001C29A93E12801C ./scripts/install_on_device.sh`
 - Complete onboarding without enabling Face ID.
 - Complete onboarding with Face ID enabled, including cancel/failure recovery.
 - Capture at least three collectibles with different materials:

@@ -117,6 +117,14 @@ EXPECT_DISTRIBUTION=1 ./scripts/verify_archive_metadata.sh /tmp/MomentoAppStoreE
 
 Use Product > Run in Xcode, not Product > Build. A successful build by itself only produces build artifacts; it does not install or launch the app unless a runnable device destination is selected.
 
+Or use the command-line install helper:
+
+```sh
+DEVICE_ID=00008140-001C29A93E12801C ./scripts/install_on_device.sh
+```
+
+The helper builds into `/tmp/MomentoDeviceDerivedData` instead of the project `build/` folder. This avoids physical-device codesign failures caused by extended attributes that can appear in FileProvider or iCloud-synced project directories.
+
 Before running on device:
 
 - Connect the iPhone by USB for the first run.

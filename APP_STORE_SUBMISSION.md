@@ -125,6 +125,14 @@ To include details for a specific CoreDevice identifier:
 
 The script writes logs to `build/device-diagnostics/`.
 
+To build, install, and launch directly on a connected iPhone:
+
+```sh
+DEVICE_ID=00008140-001C29A93E12801C ./scripts/install_on_device.sh
+```
+
+This script intentionally uses `/tmp/MomentoDeviceDerivedData` so local FileProvider or iCloud extended attributes do not break physical-device codesigning.
+
 ## App Store Export Helper
 
 After creating an archive and after distribution signing is available, run:
