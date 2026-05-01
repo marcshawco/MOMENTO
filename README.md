@@ -83,6 +83,12 @@ Inspect a smoke-test result bundle after a failure:
 ./scripts/inspect_xcresult.sh build/release-smoke/xcresults/tests.xcresult
 ```
 
+Capture the current booted Simulator screen for App Store screenshots:
+
+```sh
+./scripts/capture_app_store_screenshot.sh onboarding-privacy
+```
+
 Export an archive for App Store/TestFlight distribution after you have distribution signing available:
 
 ```sh

@@ -91,6 +91,12 @@ To validate App Store metadata draft lengths:
 ./scripts/validate_app_store_metadata.sh
 ```
 
+To capture the current booted Simulator screen for screenshot prep:
+
+```sh
+./scripts/capture_app_store_screenshot.sh onboarding-privacy
+```
+
 For a distribution-signed archive/export, require App Store signing checks:
 
 ```sh

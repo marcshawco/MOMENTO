@@ -122,6 +122,12 @@ Optional user-configured cloud suggestion endpoint:
 - Settings with Face ID and export actions
 - Export share sheet or generated insurance report preview
 
+Capture simulator screenshots with:
+
+```sh
+./scripts/capture_app_store_screenshot.sh onboarding-privacy
+```
+
 ## Pre-Submission Checks
 
 - Run `./scripts/release_smoke_test.sh`.

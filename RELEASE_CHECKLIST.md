@@ -65,6 +65,8 @@ Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving
   `./scripts/validate_app_store_metadata.sh`
 - Answer export compliance as no non-exempt encryption.
 - Add screenshots for onboarding, shelf, item detail, 3D preview, and export.
+- Capture simulator screenshots into ignored local output when useful:
+  `./scripts/capture_app_store_screenshot.sh onboarding-privacy`
 - Verify TestFlight build on at least one physical LiDAR device before external testing.
 
 ## Current Known Limitations
