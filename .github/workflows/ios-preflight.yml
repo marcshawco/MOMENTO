@@ -52,6 +52,10 @@ jobs:
         env:
           TEST_DESTINATION: ${{ steps.destination.outputs.iphone }}
           TEST_DESTINATION_IPAD: ${{ steps.destination.outputs.ipad }}
+          # Hosted runners have no provisioning profile for marcshaw.MOMENTO, so
+          # the device builds and the archive are produced unsigned. Signing is
+          # verified on a developer machine via scripts/export_appstore_archive.sh.
+          CODE_SIGNING: "0"
         run: ./scripts/release_smoke_test.sh
 
       - name: Verify Archive Metadata

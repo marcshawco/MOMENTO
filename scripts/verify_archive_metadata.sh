@@ -116,6 +116,7 @@ SIGNING_SUMMARY="$(/usr/bin/codesign -dv "$APP_PATH" 2>&1 || true)"
 echo "$SIGNING_SUMMARY" | grep -E "Authority=|TeamIdentifier=|Signature=|Runtime Version=" || true
 
 ENTITLEMENTS_PLIST="$(mktemp)"
+GET_TASK_ALLOW="missing"
 
 if /usr/bin/codesign -d --entitlements :- "$APP_PATH" > "$ENTITLEMENTS_PLIST" 2>/dev/null; then
   GET_TASK_ALLOW="$(/usr/libexec/PlistBuddy -c "Print :get-task-allow" "$ENTITLEMENTS_PLIST" 2>/dev/null || echo "missing")"

@@ -12,6 +12,10 @@ TEST_DESTINATION_IPAD="${TEST_DESTINATION_IPAD:-}"
 # Momento ships for both iPhone and iPad (TARGETED_DEVICE_FAMILY 1,2).
 # Set RUN_IPAD_TESTS=0 to skip the iPad leg locally.
 RUN_IPAD_TESTS="${RUN_IPAD_TESTS:-1}"
+# Device-targeted builds and the archive normally need a provisioning profile.
+# CI runners have no signing assets, so set CODE_SIGNING=0 there to build and
+# archive unsigned. Simulator tests never need signing either way.
+CODE_SIGNING="${CODE_SIGNING:-1}"
 
 mkdir -p "$LOG_DIR"
 rm -rf "$RESULT_DIR"
@@ -33,6 +37,16 @@ run_and_log() {
   echo "== ${name} =="
   "$@" 2>&1 | tee "${LOG_DIR}/${name}.log"
 }
+
+signing_args=()
+if [[ "$CODE_SIGNING" == "0" ]]; then
+  signing_args=(
+    CODE_SIGNING_ALLOWED=NO
+    CODE_SIGNING_REQUIRED=NO
+    CODE_SIGN_IDENTITY=""
+  )
+  echo "Code signing disabled for device builds and archive."
+fi
 
 run_and_log showdestinations \
   xcodebuild -project "$PROJECT_PATH" -scheme "$SCHEME" -showdestinations
@@ -62,6 +76,7 @@ run_and_log generic-debug-build \
     -scheme "$SCHEME" \
     -destination "generic/platform=iOS" \
     -resultBundlePath "${RESULT_DIR}/generic-debug-build.xcresult" \
+    "${signing_args[@]}" \
     build
 
 run_and_log generic-release-build \
@@ -71,6 +86,7 @@ run_and_log generic-release-build \
     -configuration Release \
     -destination "generic/platform=iOS" \
     -resultBundlePath "${RESULT_DIR}/generic-release-build.xcresult" \
+    "${signing_args[@]}" \
     build
 
 run_and_log archive \
@@ -79,7 +95,8 @@ run_and_log archive \
     -scheme "$SCHEME" \
     -configuration Release \
     -destination "generic/platform=iOS" \
-    -archivePath "$ARCHIVE_PATH"
+    -archivePath "$ARCHIVE_PATH" \
+    "${signing_args[@]}"
 
 echo "Release smoke test completed."
 echo "Logs: ${LOG_DIR}"
