@@ -2,7 +2,9 @@ import AVFoundation
 import os
 
 /// Manages audio recording and playback for voice memos.
-/// MainActor-isolated (default) because it drives UI state and uses timers.
+/// Explicitly MainActor-isolated: it publishes observable UI state and drives
+/// AVAudioRecorder/AVAudioPlayer, neither of which may be touched off the main actor.
+@MainActor
 @Observable
 final class AudioRecordingService {
 
@@ -79,7 +81,10 @@ final class AudioRecordingService {
     // MARK: - Playback
 
     /// Plays audio from the given file URL.
-    func play(url: URL) throws {
+    ///
+    /// `fileName` is the managed relative path the caller uses to identify the memo;
+    /// it is set after `stopPlayback()` so the reset does not clear the new selection.
+    func play(url: URL, fileName: String) throws {
         stopPlayback()
 
         let session = AVAudioSession.sharedInstance()
@@ -92,6 +97,7 @@ final class AudioRecordingService {
         player = audioPlayer
         isPlaying = true
         totalPlaybackDuration = audioPlayer.duration
+        currentlyPlayingFileName = fileName
 
         startPlaybackTimer()
         logger.info("Playback started: \(url.lastPathComponent)")

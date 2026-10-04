@@ -1,6 +1,6 @@
 # Momento
 
-Momento is an iOS 18+ SwiftUI app for collectors who want private 3D digital twins of physical collectibles. It uses RealityKit Object Capture and on-device photogrammetry to create USDZ models, then stores each item in a local-first scrapbook archive with photos, notes, tags, purchase details, insurance values, serial numbers, provenance notes, and voice memos.
+Momento is an iOS 26+ SwiftUI app for collectors who want private 3D digital twins of physical collectibles. It uses RealityKit Object Capture and on-device photogrammetry to create USDZ models, then stores each item in a local-first scrapbook archive with photos, notes, tags, purchase details, insurance values, serial numbers, provenance notes, and voice memos.
 
 ## Core Features
 
@@ -17,16 +17,46 @@ Momento is an iOS 18+ SwiftUI app for collectors who want private 3D digital twi
 
 ## Requirements
 
-- Xcode 16 or newer
-- iOS 18.0+
-- Swift 5.9+
+- Xcode 26 or newer (the iOS 26 SDK is required to build the deployment target)
+- iOS 26.0+
+- Swift 5 language mode, Swift 6 toolchain
 - A LiDAR-capable iPhone or iPad for real Object Capture flows
 
 The simulator can build, run, and test the non-capture paths. Object Capture itself requires supported physical hardware.
 
+## Supported Devices
+
+Momento's deployment target is iOS 26.0, so the app installs on any iPhone or iPad that can
+run iOS/iPadOS 26. Capture is gated separately, because the two capture paths have different
+hardware requirements:
+
+| Capability | Requirement | Runtime check |
+| --- | --- | --- |
+| Shelf, metadata, photos, notes, voice memos, exports, AR Quick Look | Any iOS 26 device | none |
+| Photo Set Reconstruction | On-device photogrammetry support | `PhotogrammetrySession.isSupported` |
+| Guided LiDAR Scan | LiDAR Scanner plus a supported SoC | `ObjectCaptureSession.isSupported` |
+
+`MOMENTO/Utilities/DeviceCapability.swift` centralizes these checks. The runtime checks are
+authoritative; treat the model names below as guidance for QA device selection rather than as a
+gate in code, and re-check them against Apple's current device compatibility list before release.
+
+Recommended for guided LiDAR capture:
+
+- iPhone 17 Pro / 17 Pro Max, iPhone 16 Pro / 16 Pro Max, iPhone 15 Pro / 15 Pro Max (recommended baseline)
+- iPhone 14 Pro / 14 Pro Max, iPhone 13 Pro / 13 Pro Max, iPhone 12 Pro / 12 Pro Max (supported, slower reconstruction)
+- iPad Pro 11-inch and 13-inch (M4/M5), iPad Pro 11-inch (2nd generation, 2020) and later, iPad Pro 12.9-inch (4th generation, 2020) and later
+
+Non-LiDAR iPhone and iPad models that run iOS 26 fall back to Photo Set Reconstruction when
+`PhotogrammetrySession.isSupported` is true. The Add Item screen disables and explains any
+capture mode the current device cannot run, so an unsupported device never reaches the camera.
+
+Reconstruction is GPU- and thermal-heavy. Prefer a Pro-class device with free storage above the
+500 MB floor in `AppConstants.Limits.minimumDiskSpaceMB` for QA on large capture sets.
+
 ## Project Structure
 
 - `MOMENTO/Models`: SwiftData models and value transformers
+- `MOMENTO/Utilities`: app constants and `DeviceCapability` hardware gating
 - `MOMENTO/Services`: file storage, export, capture quality, photo import, permissions, authentication, and metadata suggestion services
 - `MOMENTO/ViewModels`: capture flow and item detail logic
 - `MOMENTO/Views`: SwiftUI screens for onboarding, shelf, capture, item detail, settings, and shared components
@@ -39,7 +69,14 @@ The simulator can build, run, and test the non-capture paths. Object Capture its
 Run unit tests:
 
 ```sh
-xcodebuild test -project MOMENTO.xcodeproj -scheme MOMENTO -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -project MOMENTO.xcodeproj -scheme MOMENTO -destination "$(./scripts/resolve_test_destination.sh)"
+```
+
+`resolve_test_destination.sh` picks the newest installed simulator running iOS 26 or later and
+fails loudly if none exists. Pass `DEVICE_FAMILY=ipad` for an iPad destination:
+
+```sh
+xcodebuild test -project MOMENTO.xcodeproj -scheme MOMENTO -destination "$(DEVICE_FAMILY=ipad ./scripts/resolve_test_destination.sh)"
 ```
 
 Run a generic iOS build:
@@ -78,10 +115,15 @@ Run the full local release smoke test:
 ./scripts/release_smoke_test.sh
 ```
 
-The smoke script auto-selects an available iPhone simulator. Override it when needed:
+The smoke script runs the test suite on both an iPhone and an iPad simulator, auto-selecting
+iOS 26+ destinations. Override or skip them when needed:
 
 ```sh
-TEST_DESTINATION='platform=iOS Simulator,name=iPhone 17 Pro' ./scripts/release_smoke_test.sh
+TEST_DESTINATION='platform=iOS Simulator,name=iPhone 17 Pro,OS=26.3' ./scripts/release_smoke_test.sh
+```
+
+```sh
+RUN_IPAD_TESTS=0 ./scripts/release_smoke_test.sh
 ```
 
 Run the full release preflight:
@@ -170,7 +212,11 @@ Momento is private by default:
 
 ## Object Capture Notes
 
-Momento preserves detailed USDZ output and does not compress reconstructed model files. The app currently requests RealityKit photogrammetry detail as `.reduced` because that is the supported on-device Object Capture detail level for this iOS path. If Apple expands supported detail levels, update the capture request and verify on physical hardware before release.
+Momento preserves detailed USDZ output and does not compress reconstructed model files. The app
+requests RealityKit photogrammetry detail as `.reduced`. As of the iOS 26 SDK, `.reduced` is still
+the only `PhotogrammetrySession.Request.Detail` case available on iOS — `.preview`, `.medium`,
+`.full`, and `.raw` are macOS-only and do not compile for an iOS target. If Apple expands supported
+detail levels, update both capture requests and verify on physical hardware before release.
 
 Apple's guided `ObjectCaptureSession` flow is optimized for a stationary object on a stable, textured surface while the camera moves around it. For small collectibles that are hard to place, Momento exposes a Handheld Scan fallback: keep the object centered, rotate it slowly, avoid covering important detail with fingers, and capture many sharp angles against a textured background. Pure "rotate it in your hand" capture support is uncertain in Apple's guided API; Momento's safe fallback is to collect manual images and send that image set through `PhotogrammetrySession`.
 

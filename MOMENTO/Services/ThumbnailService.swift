@@ -78,11 +78,13 @@ nonisolated final class ThumbnailService: Sendable {
     ) async throws -> Data {
         logger.info("Generating Quick Look thumbnail from: \(usdzURL.lastPathComponent)")
 
-        let scale = await MainActor.run { UIScreen.main.scale }
+        // Scale 1 makes `size` the pixel size of the stored thumbnail, matching
+        // `generateCaptureThumbnail` and keeping the cached asset independent of
+        // whichever display happened to be active when it was generated.
         let request = QLThumbnailGenerator.Request(
             fileAt: usdzURL,
             size: CGSize(width: size, height: size),
-            scale: scale,
+            scale: 1,
             representationTypes: .thumbnail
         )
 

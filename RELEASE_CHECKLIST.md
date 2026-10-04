@@ -1,11 +1,13 @@
 # Momento Release Checklist
 
-Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving with RealityKit Object Capture, on-device photogrammetry, SwiftData metadata, file-backed assets, in-app model preview, and AR Quick Look.
+Momento is an iOS 26+ SwiftUI app for private, local-first collectible archiving with RealityKit Object Capture, on-device photogrammetry, SwiftData metadata, file-backed assets, in-app model preview, and AR Quick Look.
 
 ## Automated Gates
 
-- Run unit tests:
-  `xcodebuild test -project MOMENTO.xcodeproj -scheme MOMENTO -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
+- Run unit tests on an iOS 26+ simulator:
+  `xcodebuild test -project MOMENTO.xcodeproj -scheme MOMENTO -destination "$(./scripts/resolve_test_destination.sh)"`
+- Run unit tests on an iPad simulator:
+  `xcodebuild test -project MOMENTO.xcodeproj -scheme MOMENTO -destination "$(DEVICE_FAMILY=ipad ./scripts/resolve_test_destination.sh)"`
 - Run generic iOS build:
   `xcodebuild -project MOMENTO.xcodeproj -scheme MOMENTO -destination 'generic/platform=iOS' build`
 - Run Release generic iOS build:
@@ -14,8 +16,10 @@ Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving
   `xcodebuild archive -project MOMENTO.xcodeproj -scheme MOMENTO -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/MomentoRelease.xcarchive`
 - Or run the full local smoke pass:
   `./scripts/release_smoke_test.sh`
-- Override the simulator destination when needed:
-  `TEST_DESTINATION='platform=iOS Simulator,name=iPhone 17 Pro' ./scripts/release_smoke_test.sh`
+- Override the simulator destinations when needed:
+  `TEST_DESTINATION='platform=iOS Simulator,name=iPhone 17 Pro,OS=26.3' ./scripts/release_smoke_test.sh`
+- Skip the iPad leg of the smoke pass:
+  `RUN_IPAD_TESTS=0 ./scripts/release_smoke_test.sh`
 - Or run the full release preflight:
   `./scripts/preflight_release.sh`
 - Inspect a failed test/build result bundle:
@@ -31,7 +35,7 @@ Momento is an iOS 18+ SwiftUI app for private, local-first collectible archiving
 
 ## Required Real-Device QA
 
-- Install on an iOS 18+ LiDAR-capable iPhone or iPad.
+- Install on an iOS 26+ LiDAR-capable iPhone or iPad (see Supported Devices in `README.md`).
 - Command-line install option:
   `DEVICE_ID=00008140-001C29A93E12801C ./scripts/install_on_device.sh`
 - Complete onboarding without enabling Face ID.

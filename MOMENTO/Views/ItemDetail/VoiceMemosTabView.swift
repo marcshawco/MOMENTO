@@ -147,8 +147,7 @@ struct VoiceMemosTabView: View {
         } else {
             guard let url = try? FileStorageService.shared.resolveURL(for: memo.fileName) else { return }
             do {
-                audioService.currentlyPlayingFileName = memo.fileName
-                try audioService.play(url: url)
+                try audioService.play(url: url, fileName: memo.fileName)
             } catch {
                 audioService.stopPlayback()
             }

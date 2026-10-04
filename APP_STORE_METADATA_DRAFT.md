@@ -8,7 +8,7 @@ Use this as the starting point for App Store Connect. Keep the final entries ali
 - Subtitle: Private 3D collectible archive
 - Category: Lifestyle
 - Secondary category: Photo & Video
-- Minimum OS: iOS 18.0
+- Minimum OS: iOS 26.0
 - Bundle ID: marcshaw.MOMENTO
 
 ## Promotional Text

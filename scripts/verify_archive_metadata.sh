@@ -3,6 +3,8 @@ set -euo pipefail
 
 INPUT_PATH="${1:-/tmp/MomentoRelease.xcarchive}"
 EXPECT_DISTRIBUTION="${EXPECT_DISTRIBUTION:-0}"
+# Momento's deployment target. Set to 0 to skip the minimum-OS assertion.
+EXPECT_MINIMUM_OS_MAJOR="${EXPECT_MINIMUM_OS_MAJOR:-26}"
 TEMP_DIR=""
 
 cleanup() {
@@ -127,6 +129,20 @@ fi
 if [[ "$SUPPORTED_PLATFORMS" != *"iPhoneOS"* ]]; then
   echo "ERROR: Artifact does not advertise iPhoneOS support."
   exit 1
+fi
+
+if [[ "$EXPECT_MINIMUM_OS_MAJOR" != "0" ]]; then
+  MINIMUM_OS="$(/usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" "$INFO_PLIST" 2>/dev/null || true)"
+  if [[ -z "$MINIMUM_OS" ]]; then
+    echo "ERROR: Info.plist has no MinimumOSVersion."
+    exit 1
+  fi
+
+  MINIMUM_OS_MAJOR="${MINIMUM_OS%%.*}"
+  if (( MINIMUM_OS_MAJOR < EXPECT_MINIMUM_OS_MAJOR )); then
+    echo "ERROR: MinimumOSVersion is ${MINIMUM_OS}, expected ${EXPECT_MINIMUM_OS_MAJOR}.0 or newer."
+    exit 1
+  fi
 fi
 
 if [[ "$EXPECT_DISTRIBUTION" == "1" ]]; then

@@ -10,7 +10,9 @@ on:
 jobs:
   preflight:
     name: Build, Test, Archive
-    runs-on: macos-15
+    # Momento targets iOS 26.0, which needs Xcode 26 or newer. Older runner
+    # images (macos-15 and earlier) ship Xcode 16 and cannot build this project.
+    runs-on: macos-26
     timeout-minutes: 60
 
     steps:
@@ -20,19 +22,36 @@ jobs:
       - name: Show Xcode Version
         run: xcodebuild -version
 
+      - name: Verify iOS SDK Supports Deployment Target
+        run: |
+          set -euo pipefail
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          sdk_major="${sdk_version%%.*}"
+          echo "iOS SDK: ${sdk_version}"
+          if (( sdk_major < 26 )); then
+            echo "::error::iOS SDK ${sdk_version} cannot build a project targeting iOS 26.0."
+            echo "::error::Use a runner image with Xcode 26 or newer."
+            exit 1
+          fi
+
       - name: Validate App Store Metadata
         run: ./scripts/validate_app_store_metadata.sh
 
-      - name: Resolve Test Destination
+      - name: Resolve Test Destinations
         id: destination
         run: |
-          destination="$(./scripts/resolve_test_destination.sh)"
-          echo "destination=${destination}" >> "$GITHUB_OUTPUT"
-          echo "Using destination: ${destination}"
+          set -euo pipefail
+          iphone="$(./scripts/resolve_test_destination.sh)"
+          ipad="$(DEVICE_FAMILY=ipad ./scripts/resolve_test_destination.sh)"
+          echo "iphone=${iphone}" >> "$GITHUB_OUTPUT"
+          echo "ipad=${ipad}" >> "$GITHUB_OUTPUT"
+          echo "iPhone destination: ${iphone}"
+          echo "iPad destination: ${ipad}"
 
       - name: Release Smoke Test
         env:
-          TEST_DESTINATION: ${{ steps.destination.outputs.destination }}
+          TEST_DESTINATION: ${{ steps.destination.outputs.iphone }}
+          TEST_DESTINATION_IPAD: ${{ steps.destination.outputs.ipad }}
         run: ./scripts/release_smoke_test.sh
 
       - name: Verify Archive Metadata

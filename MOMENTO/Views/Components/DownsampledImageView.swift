@@ -9,6 +9,7 @@ struct DownsampledImageView: View {
     let targetSize: CGSize
     var contentMode: ContentMode = .fill
 
+    @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
     @State private var failed = false
 
@@ -33,27 +34,30 @@ struct DownsampledImageView: View {
                 }
             }
         }
-        .task(id: url) {
-            await load()
+        .task(id: TaskKey(url: url, scale: displayScale)) {
+            await load(scale: displayScale)
         }
     }
 
-    private func load() async {
-        let screenScale = await MainActor.run { UIScreen.main.scale }
+    private func load(scale: CGFloat) async {
+        let targetSize = targetSize
+        let url = url
         do {
             let maybeImage = try await Task.detached(priority: .userInitiated) {
-                try Self.downsampleImage(at: url, to: targetSize, scale: screenScale)
+                try Self.downsampleImage(at: url, to: targetSize, scale: scale)
             }.value
 
-            await MainActor.run {
-                image = maybeImage
-                failed = maybeImage == nil
-            }
+            image = maybeImage
+            failed = maybeImage == nil
         } catch {
-            await MainActor.run {
-                failed = true
-            }
+            failed = true
         }
+    }
+
+    /// Re-runs the load when either the file or the display scale changes.
+    private struct TaskKey: Equatable {
+        let url: URL
+        let scale: CGFloat
     }
 
     nonisolated private static func downsampleImage(

@@ -108,10 +108,17 @@ final class PhotoSetReconstructionViewModel {
     }
 
     var canReconstruct: Bool {
-        requiredViewsComplete && totalImageCount >= 6 && !state.isBusy
+        DeviceCapability.supportsOnDeviceReconstruction
+            && requiredViewsComplete
+            && totalImageCount >= 6
+            && !state.isBusy
     }
 
     var readinessText: String {
+        if !DeviceCapability.supportsOnDeviceReconstruction {
+            return DeviceCapability.reconstructionUnavailableMessage
+        }
+
         if !requiredViewsComplete {
             let names = missingRequiredViews.map(\.title).joined(separator: ", ")
             return "Missing: \(names)"
@@ -125,6 +132,7 @@ final class PhotoSetReconstructionViewModel {
     }
 
     func reconstruct() {
+        // `canReconstruct` already requires on-device reconstruction support.
         guard canReconstruct else { return }
         guard FileStorageService.shared.hasSufficientDiskSpace else {
             let available = FileStorageService.shared.availableDiskSpaceMB()

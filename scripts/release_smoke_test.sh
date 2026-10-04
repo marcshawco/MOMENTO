@@ -8,6 +8,10 @@ PROJECT_PATH="${PROJECT_PATH:-MOMENTO.xcodeproj}"
 SCHEME="${SCHEME:-MOMENTO}"
 ARCHIVE_PATH="${ARCHIVE_PATH:-/tmp/MomentoRelease.xcarchive}"
 TEST_DESTINATION="${TEST_DESTINATION:-}"
+TEST_DESTINATION_IPAD="${TEST_DESTINATION_IPAD:-}"
+# Momento ships for both iPhone and iPad (TARGETED_DEVICE_FAMILY 1,2).
+# Set RUN_IPAD_TESTS=0 to skip the iPad leg locally.
+RUN_IPAD_TESTS="${RUN_IPAD_TESTS:-1}"
 
 mkdir -p "$LOG_DIR"
 rm -rf "$RESULT_DIR"
@@ -17,6 +21,10 @@ rm -rf "$ARCHIVE_PATH"
 
 if [[ -z "$TEST_DESTINATION" ]]; then
   TEST_DESTINATION="$(./scripts/resolve_test_destination.sh)"
+fi
+
+if [[ "$RUN_IPAD_TESTS" != "0" && -z "$TEST_DESTINATION_IPAD" ]]; then
+  TEST_DESTINATION_IPAD="$(DEVICE_FAMILY=ipad ./scripts/resolve_test_destination.sh)"
 fi
 
 run_and_log() {
@@ -38,6 +46,15 @@ run_and_log tests \
     -scheme "$SCHEME" \
     -destination "$TEST_DESTINATION" \
     -resultBundlePath "${RESULT_DIR}/tests.xcresult"
+
+if [[ "$RUN_IPAD_TESTS" != "0" ]]; then
+  run_and_log tests-ipad \
+    xcodebuild test \
+      -project "$PROJECT_PATH" \
+      -scheme "$SCHEME" \
+      -destination "$TEST_DESTINATION_IPAD" \
+      -resultBundlePath "${RESULT_DIR}/tests-ipad.xcresult"
+fi
 
 run_and_log generic-debug-build \
   xcodebuild \
@@ -68,4 +85,7 @@ echo "Release smoke test completed."
 echo "Logs: ${LOG_DIR}"
 echo "Result bundles: ${RESULT_DIR}"
 echo "Archive: ${ARCHIVE_PATH}"
-echo "Test destination: ${TEST_DESTINATION}"
+echo "Test destination (iPhone): ${TEST_DESTINATION}"
+if [[ "$RUN_IPAD_TESTS" != "0" ]]; then
+  echo "Test destination (iPad): ${TEST_DESTINATION_IPAD}"
+fi

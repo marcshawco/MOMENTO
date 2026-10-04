@@ -4,7 +4,7 @@ Momento is an iOS-only, local-first private scrapbook for 3D scans of physical c
 
 ## Current Review Posture
 
-- Minimum OS: iOS 18.0.
+- Minimum OS: iOS 26.0.
 - Distribution scope: iPhone and iPad only. Mac Catalyst and Designed for iPhone/iPad on Mac are disabled by project setting; also leave Mac availability unchecked in App Store Connect unless the product decision changes.
 - Platform: iPhone/iPad via SwiftUI, SwiftData, RealityKit Object Capture, PhotogrammetrySession, Quick Look, AVFoundation, LocalAuthentication.
 - Privacy posture: private by default, local-first storage, Face ID lock optional, no public sharing defaults.

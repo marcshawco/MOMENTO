@@ -145,12 +145,16 @@ final class CaptureViewModel {
     func startSession() async {
         guard case .idle = flowState else { return }
 
-        // Check device support
-        guard ObjectCaptureSession.isSupported else {
-            flowState = .unsupported(
-                "This device does not support 3D object scanning. " +
-                "A device with LiDAR sensor is required (iPhone 12 Pro or later)."
-            )
+        // Check device support. Guided capture needs ObjectCaptureSession; the
+        // reconstruction step afterwards separately needs PhotogrammetrySession,
+        // so both are checked before the camera is ever started.
+        guard DeviceCapability.supportsGuidedObjectCapture else {
+            flowState = .unsupported(DeviceCapability.guidedCaptureUnavailableMessage)
+            return
+        }
+
+        guard DeviceCapability.supportsOnDeviceReconstruction else {
+            flowState = .unsupported(DeviceCapability.reconstructionUnavailableMessage)
             return
         }
 
